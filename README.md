@@ -37,3 +37,24 @@ Method 2: Configuration File
 Run the tool once, and it will automatically create a configuration file at:
 `~/.config/ai-commit/config.json` (Linux/macOS)
 Just open it and paste your API key there.
+
+## Usage
+
+1. Stage your changes: `git add .`
+2. Run the tool: `./ai-commit` (or just `ai-commit` if it is in your PATH)
+3. The AI will suggest a commit message for your review.
+
+### CLI Options
+
+- `-m "context"`: Provide additional context or hints to the AI.
+- `--mode`: Switch between different message styles (e.g., `pro`, `casual`).
+
+---
+
+## Contributing
+
+As a beginner, I am very open to feedback. If you find any bugs or have suggestions to make this tool better, please feel free to open an issue or submit a pull request. I would be happy to learn from your expertise.
+
+## License
+
+MIT
