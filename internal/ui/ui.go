@@ -7,6 +7,8 @@ import (
 	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/tiw302/ai-commit/internal/config"
 )
 
 // UI handles terminal coloring and styling for user feedback.
