@@ -1,5 +1,8 @@
 # ai-commit ( •⌄• )✧
 
+[![CI](https://github.com/tiw/ai-commit/actions/workflows/ci.yml/badge.svg)](https://github.com/tiw/ai-commit/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A humble AI-powered git commit message generator written in Go.
 Made with care by a developer who is still learning and exploring.
 
@@ -38,30 +41,28 @@ ai-commit
 - Smart Filtering: Automatically ignores large or non-text files to optimize API usage.
 - Developer Friendly: Simple CLI interface with clear feedback, help documentation, and version tracking.
 
-## Installation Details
+## Configuration
 
-If you have Go installed, you can get started in seconds:
+The tool creates a configuration file at `~/.config/ai-commit/config.json`. You can customize it to your heart's content:
 
-1. Clone this repository: `git clone https://github.com/tiw/ai-commit.git`
-2. Navigate to the folder: `cd ai-commit`
-3. Use the Makefile to build and install:
-   ```bash
-   make install  # This builds and moves the tool to your /usr/local/bin
-   ```
-
-## Setup your API Key
-
-You will need an OpenAI-compatible API key. 
-
-Method 1: Environment Variable (Recommended)
-```bash
-export AI_COMMIT_API_KEY="your-key-here"
+```json
+{
+  "api_url": "https://api.openai.com/v1/chat/completions",
+  "api_key": "",
+  "model_name": "gpt-4o",
+  "ui_colors": {
+    "success": "\u001b[32m",
+    "error": "\u001b[31m",
+    "warning": "\u001b[33m",
+    "info": "\u001b[34m"
+  },
+  "modes": {
+    "pro": "You are a professional software engineer...",
+    "troll": "You are a sarcastic dev..."
+  },
+  "default_mode": "pro"
+}
 ```
-
-Method 2: Configuration File
-Run the tool once, and it will automatically create a configuration file at:
-`~/.config/ai-commit/config.json`
-Just open it and paste your API key there.
 
 ## Usage
 
@@ -86,8 +87,9 @@ Using the tool is meant to be as simple as possible:
 I have included a few tools to help with development and ensure code quality:
 
 ```bash
-make test     # Run the automated unit tests (uses mocks, no API key needed)
-make clean    # Remove the build artifacts and clean Go cache
+make build    # Build the binary locally
+make test     # Run the automated unit tests
+make clean    # Remove build artifacts and clean cache
 ```
 
 ---
