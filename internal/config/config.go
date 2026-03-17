@@ -7,6 +7,9 @@ import (
 	"path/filepath"
 )
 
+// Version is the current version of the ai-commit tool.
+const Version = "0.1.0"
+
 // UIColors defines the hex or ANSI color codes for terminal output styling.
 type UIColors struct {
 	Success string `json:"success"`
