@@ -7,6 +7,14 @@ Made with care by a developer who is still learning and exploring.
 
 Hello! I am still quite new to the Go ecosystem, and I built this small tool to help myself (and hopefully others) write more consistent commit messages using AI. It is a simple project, but I am trying my best to make it useful and well-structured.
 
+## Quick Start (3 Steps)
+
+1. **Install:** `make install` (or `go build -o ai-commit ./cmd/ai-commit`)
+2. **Setup:** `export AI_COMMIT_API_KEY="your-key-here"`
+3. **Run:** `git add . && ai-commit`
+
+---
+
 ## Features
 
 - Zero-Config: Works out of the box by creating a default configuration for you.
@@ -15,21 +23,20 @@ Hello! I am still quite new to the Go ecosystem, and I built this small tool to 
 - Smart Filtering: Automatically ignores large or non-text files to optimize API usage.
 - Developer Friendly: Simple CLI interface with clear feedback, help documentation, and version tracking.
 
-## Quick Start
+## Installation Details
 
-### Installation
+If you have Go installed, you can get started in seconds:
 
-1. Ensure you have Go installed on your machine.
-2. Clone this repository: `git clone https://github.com/tiw/ai-commit.git`
+1. Clone this repository: `git clone https://github.com/tiw/ai-commit.git`
+2. Navigate to the folder: `cd ai-commit`
 3. Use the Makefile to build and install:
    ```bash
-   make build    # To build the binary locally
-   make install  # To build and move it to /usr/local/bin (requires sudo)
+   make install  # This builds and moves the tool to your /usr/local/bin
    ```
 
-### Setup your API Key
+## Setup your API Key
 
-You will need an OpenAI-compatible API key. I am currently learning how to support more providers, so please be patient.
+You will need an OpenAI-compatible API key. 
 
 Method 1: Environment Variable (Recommended)
 ```bash
@@ -38,21 +45,26 @@ export AI_COMMIT_API_KEY="your-key-here"
 
 Method 2: Configuration File
 Run the tool once, and it will automatically create a configuration file at:
-`~/.config/ai-commit/config.json` (Linux/macOS)
+`~/.config/ai-commit/config.json`
 Just open it and paste your API key there.
 
 ## Usage
 
-1. Stage your changes: `git add .`
-2. Run the tool: `./ai-commit` (or just `ai-commit` if it is in your PATH)
-3. The AI will suggest a commit message for your review.
+Using the tool is meant to be as simple as possible:
+
+1. Stage your changes as usual: `git add .`
+2. Run the tool: `ai-commit`
+3. Review the AI's suggestion:
+   - Press **y** to accept and commit.
+   - Press **e** to edit the message first.
+   - Press **r** to try generating a new one.
 
 ### CLI Flags
 
-- `-m "context"`: Provide additional context or hints to the AI.
-- `--mode`: Switch between different message styles (e.g., `pro`, `casual`).
-- `-h, --help`: Show detailed usage information and examples.
-- `-v, --version`: Print the current version of the tool.
+- `-m "context"`: Give the AI a hint (e.g., `ai-commit -m "fix UI bug"`).
+- `--mode`: Change the style (e.g., `ai-commit --mode troll`).
+- `-h, --help`: Show help and examples.
+- `-v, --version`: Show the version.
 
 ## Development
 
