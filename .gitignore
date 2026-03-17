@@ -22,3 +22,9 @@ Thumbs.db
 undo/
 .netrwhist
 *~
+
+# Go-specific
+*.test
+*.out
+cover.out
+prof.out
