@@ -92,6 +92,14 @@ make test     # Run the automated unit tests
 make clean    # Remove build artifacts and clean cache
 ```
 
+## Roadmap
+
+Currently, `ai-commit` only supports OpenAI-compatible APIs. We are working on expanding support to include:
+
+- **Ollama Support:** Integration for local LLMs via Ollama.
+- **Additional Providers:** Support for Anthropic Claude and Google Gemini.
+- **Git Hook:** Option to run automatically during `git commit`.
+
 ---
 
 ## Contributing (｡◕‿◕｡)
