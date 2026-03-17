@@ -68,7 +68,7 @@ func main() {
 		fmt.Printf("\n\n%sProposed Commit Message:%s\n%s\n", tui.Info, "\033[0m", commitMessage)
 
 		// 5. Interactive Prompt
-		choice := ui.AskForConfirmation()
+		choice := tui.AskForConfirmation()
 		switch choice {
 		case "y", "yes":
 			if err := git.Commit(commitMessage); err != nil {
@@ -83,11 +83,15 @@ func main() {
 				tui.PrintError(fmt.Sprintf("Editor error: %v", err))
 				os.Exit(1)
 			}
+			if editedMsg == "" {
+				tui.PrintInfo("Commit message is empty. Cancelled.")
+				return
+			}
 			if err := git.Commit(editedMsg); err != nil {
 				tui.PrintError(fmt.Sprintf("Failed to commit: %v", err))
 				os.Exit(1)
 			}
-			tui.PrintSuccess("Changes committed successfully with edited message!")
+			tui.PrintSuccess("Changes committed!")
 			return
 		case "r", "regenerate":
 			tui.PrintInfo("Regenerating...")
@@ -96,8 +100,7 @@ func main() {
 			tui.PrintInfo("Commit cancelled.")
 			return
 		default:
-			tui.PrintInfo("Unknown option. Operation cancelled.")
+			tui.PrintInfo("Operation cancelled.")
 			return
-		}
-	}
+		}	}
 }
