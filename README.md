@@ -6,7 +6,7 @@ A highly customizable AI-powered git commit message generator written in Go.
 
 1. Ensure you have Go installed.
 2. Clone the repository.
-3. Run `go build -o ai-commit`
+3. Run `go build -o ai-commit ./cmd/ai-commit`
 4. Setup your config at `~/.config/ai-commit/config.json`
 
 ## Usage
