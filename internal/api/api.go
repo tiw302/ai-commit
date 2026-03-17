@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
+
 	"github.com/tiw/ai-commit/internal/config"
 )
-
 // Message represents a single chat message in the conversation.
 type Message struct {
 	Role    string `json:"role"`
@@ -60,14 +61,13 @@ func GenerateCommitMessage(cfg *config.Config, prompt, diff string) (string, err
 		req.Header.Set("Authorization", "Bearer "+cfg.APIKey)
 	}
 
-	// Execute the request.
-	client := &http.Client{}
+	// Execute the request with timeout.
+	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to connect to the AI API: %w", err)
 	}
 	defer resp.Body.Close()
-
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("AI API returned an error (Status %d): %s", resp.StatusCode, string(body))
