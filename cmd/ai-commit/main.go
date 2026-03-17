@@ -14,6 +14,18 @@ import (
 
 func main() {
 	// CLI Flags
+	flag.Usage = func() {
+		fmt.Printf("ai-commit - A humble AI-powered git commit generator\n\n")
+		fmt.Printf("Usage:\n")
+		fmt.Printf("  ai-commit [flags]\n\n")
+		fmt.Printf("Examples:\n")
+		fmt.Printf("  ai-commit\n")
+		fmt.Printf("  ai-commit -m \"fix login bug\"\n")
+		fmt.Printf("  ai-commit --mode troll\n\n")
+		fmt.Printf("Flags:\n")
+		flag.PrintDefaults()
+	}
+
 	versionFlag := flag.Bool("v", false, "Print version and exit")
 	versionFullFlag := flag.Bool("version", false, "Print version and exit")
 	modeFlag := flag.String("mode", "", "The mode for the commit message (e.g., pro, troll)")
