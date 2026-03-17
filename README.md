@@ -15,6 +15,21 @@ Hello! I am still quite new to the Go ecosystem, and I built this small tool to 
 
 ---
 
+## Example Workflow
+
+```bash
+# 1. You made some changes to your code
+# 2. Add them as usual
+git add .
+
+# 3. Just type:
+ai-commit
+
+# 4. Result:
+# ? Accept this commit? [y]es / [n]o / [e]dit / [r]egenerate: y
+# ✔ Changes committed successfully!
+```
+
 ## Features
 
 - Zero-Config: Works out of the box by creating a default configuration for you.
