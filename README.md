@@ -21,8 +21,12 @@ Hello! I am still quite new to the Go ecosystem, and I built this small tool to 
 
 1. Ensure you have Go installed on your machine.
 2. Clone this repository: `git clone https://github.com/tiw/ai-commit.git`
-3. Build the binary: `go build -o ai-commit ./cmd/ai-commit`
-4. (Optional) Move it to your path: `sudo mv ai-commit /usr/local/bin/`
+3. Use the Makefile to build and install:
+   ```bash
+   make build    # To build the binary locally
+   make install  # To build and move it to /usr/local/bin (requires sudo)
+   ```
+4. Alternatively, build manually: `go build -o ai-commit ./cmd/ai-commit`
 
 ### Setup your API Key
 
