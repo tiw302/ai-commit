@@ -25,15 +25,39 @@ type Config struct {
 	DefaultMode string            `json:"default_mode"`
 }
 
-// LoadConfig reads the configuration from the OS-specific config directory (e.g., ~/.config/ai-commit/config.json).
-// It prioritizes the AI_COMMIT_API_KEY environment variable if it is set.
+// LoadConfig reads the configuration from the user's config directory.
+// It creates a default configuration if none exists.
 func LoadConfig() (*Config, error) {
 	configDir, err := os.UserConfigDir()
 	if err != nil {
 		return nil, fmt.Errorf("could not determine user config directory: %w", err)
 	}
 
-	path := filepath.Join(configDir, "ai-commit", "config.json")
+	appDir := filepath.Join(configDir, "ai-commit")
+	path := filepath.Join(appDir, "config.json")
+
+	// Ensure app directory exists.
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		if err := os.MkdirAll(appDir, 0755); err != nil {
+			return nil, fmt.Errorf("failed to create config directory: %w", err)
+		}
+
+		defaultCfg := &Config{
+			APIURL:    "https://api.openai.com/v1/chat/completions",
+			ModelName: "gpt-4o",
+			Modes: map[string]string{
+				"pro":   "You are a professional software engineer. Generate a concise commit message based on the diff below.",
+				"troll": "You are a sarcastic dev. Roast the code and generate a funny commit message.",
+			},
+			DefaultMode: "pro",
+		}
+
+		data, _ := json.MarshalIndent(defaultCfg, "", "  ")
+		if err := os.WriteFile(path, data, 0644); err != nil {
+			return nil, fmt.Errorf("failed to create default config: %w", err)
+		}
+	}
+
 	file, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("config file not found at %s: %w", path, err)
@@ -44,7 +68,6 @@ func LoadConfig() (*Config, error) {
 		return nil, fmt.Errorf("failed to parse config JSON: %w", err)
 	}
 
-	// Environment variable takes precedence over the config file for security.
 	if envKey := os.Getenv("AI_COMMIT_API_KEY"); envKey != "" {
 		cfg.APIKey = envKey
 	}
