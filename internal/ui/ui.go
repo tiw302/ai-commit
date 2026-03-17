@@ -43,6 +43,22 @@ func (u *UI) PrintInfo(msg string) {
 	fmt.Printf("%sℹ %s\033[0m\n", u.Info, msg)
 }
 
+// ApplyConfig updates the UI colors based on the user's configuration.
+func (u *UI) ApplyConfig(cfgColors config.UIColors) {
+	if cfgColors.Success != "" {
+		u.Success = cfgColors.Success
+	}
+	if cfgColors.Error != "" {
+		u.Error = cfgColors.Error
+	}
+	if cfgColors.Warning != "" {
+		u.Warning = cfgColors.Warning
+	}
+	if cfgColors.Info != "" {
+		u.Info = cfgColors.Info
+	}
+}
+
 // LoadingSpinner creates an animated spinner while a background task is running.
 // It stops once the stopChan receives a signal.
 func LoadingSpinner(stopChan chan bool) {

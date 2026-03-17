@@ -47,6 +47,9 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Apply colors from config
+	tui.ApplyConfig(cfg.UIColors)
+
 	// 2. Determine Prompt Mode
 	mode := cfg.DefaultMode
 	if *modeFlag != "" {
