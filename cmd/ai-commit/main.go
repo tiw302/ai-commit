@@ -14,9 +14,17 @@ import (
 
 func main() {
 	// CLI Flags
+	versionFlag := flag.Bool("v", false, "Print version and exit")
+	versionFullFlag := flag.Bool("version", false, "Print version and exit")
 	modeFlag := flag.String("mode", "", "The mode for the commit message (e.g., pro, troll)")
 	contextFlag := flag.String("m", "", "Short user context/instruction for the commit")
 	flag.Parse()
+
+	// 0. Check for version flag
+	if *versionFlag || *versionFullFlag {
+		fmt.Printf("ai-commit version %s\n", config.Version)
+		return
+	}
 
 	tui := ui.NewUI()
 
