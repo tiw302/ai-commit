@@ -13,7 +13,7 @@ Hello! I am still quite new to the Go ecosystem, and I built this small tool to 
 - Custom Modes: Support for different prompt modes like professional or casual.
 - Interactive Editing: Option to edit the AI-generated message in your system editor.
 - Smart Filtering: Automatically ignores large or non-text files to optimize API usage.
-- Developer Friendly: Simple CLI interface with clear feedback and error handling.
+- Developer Friendly: Simple CLI interface with clear feedback, help documentation, and version tracking.
 
 ## Quick Start
 
@@ -26,7 +26,6 @@ Hello! I am still quite new to the Go ecosystem, and I built this small tool to 
    make build    # To build the binary locally
    make install  # To build and move it to /usr/local/bin (requires sudo)
    ```
-4. Alternatively, build manually: `go build -o ai-commit ./cmd/ai-commit`
 
 ### Setup your API Key
 
@@ -48,10 +47,21 @@ Just open it and paste your API key there.
 2. Run the tool: `./ai-commit` (or just `ai-commit` if it is in your PATH)
 3. The AI will suggest a commit message for your review.
 
-### CLI Options
+### CLI Flags
 
 - `-m "context"`: Provide additional context or hints to the AI.
 - `--mode`: Switch between different message styles (e.g., `pro`, `casual`).
+- `-h, --help`: Show detailed usage information and examples.
+- `-v, --version`: Print the current version of the tool.
+
+## Development
+
+I have included a few tools to help with development and ensure code quality:
+
+```bash
+make test     # Run the automated unit tests (uses mocks, no API key needed)
+make clean    # Remove the build artifacts and clean Go cache
+```
 
 ---
 
