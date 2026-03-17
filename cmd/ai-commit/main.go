@@ -6,10 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/tiw/ai-commit/api"
-	"github.com/tiw/ai-commit/config"
-	"github.com/tiw/ai-commit/git"
-	"github.com/tiw/ai-commit/ui"
+	"github.com/tiw/ai-commit/internal/api"
+	"github.com/tiw/ai-commit/internal/config"
+	"github.com/tiw/ai-commit/internal/git"
+	"github.com/tiw/ai-commit/internal/ui"
 )
 
 func main() {

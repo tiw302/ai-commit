@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"github.com/tiw/ai-commit/config"
+	"github.com/tiw/ai-commit/internal/config"
 )
 
 // Message represents a single chat message in the conversation.
