@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/tiw/ai-commit/internal/config"
+	"github.com/tiw302/ai-commit/internal/config"
 )
 // Message represents a single chat message in the conversation.
 type Message struct {

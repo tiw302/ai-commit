@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/tiw/ai-commit/internal/config"
+	"github.com/tiw302/ai-commit/internal/config"
 )
 
 func TestGenerateCommitMessage(t *testing.T) {

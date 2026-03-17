@@ -1,3 +1,3 @@
-module github.com/tiw/ai-commit
+module github.com/tiw302/ai-commit
 
-go 1.26.1
+go 1.23.0
