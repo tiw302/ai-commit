@@ -15,6 +15,7 @@ type UI struct {
 	Error   string
 	Warning string
 	Info    string
+	Prompt  string
 }
 
 // NewUI initializes a UI instance with ANSI color codes.
@@ -24,9 +25,9 @@ func NewUI() *UI {
 		Error:   "\033[31m", // Red
 		Warning: "\033[33m", // Yellow
 		Info:    "\033[34m", // Blue
+		Prompt:  "\033[36m", // Cyan
 	}
 }
-
 // PrintSuccess displays a success message with green color.
 func (u *UI) PrintSuccess(msg string) {
 	fmt.Printf("%s✔ %s\033[0m\n", u.Success, msg)
@@ -60,14 +61,13 @@ func LoadingSpinner(stopChan chan bool) {
 	}
 }
 
-// AskForConfirmation prompts the user for the next action: yes, no, edit, or regenerate.
-func AskForConfirmation() string {
+// AskForConfirmation prompts the user for the next action.
+func (u *UI) AskForConfirmation() string {
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Printf("\nAccept this commit? [y]es / [n]o / [e]dit / [r]egenerate: ")
+	fmt.Printf("\n%s? Accept this commit? [y]es / [n]o / [e]dit / [r]egenerate: \033[0m", u.Prompt)
 	input, _ := reader.ReadString('\n')
 	return strings.ToLower(strings.TrimSpace(input))
 }
-
 // OpenInEditor opens the generated message in the user's default system editor (e.g., vim, nano).
 // It returns the updated message after the user saves and closes the editor.
 func OpenInEditor(initialMessage string) (string, error) {
