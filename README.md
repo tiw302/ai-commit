@@ -1,6 +1,6 @@
 # ai-commit ( •⌄• )✧
 
-[![CI](https://github.com/tiw302/ai-commit/actions/workflows/ci.yml/badge.svg)](https://github.com/tiw302/ai-commit/actions)
+[![CI](https://github.com/tiw302/ai-commit/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/tiw302/ai-commit/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A humble AI-powered git commit message generator written in Go.
