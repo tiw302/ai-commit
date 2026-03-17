@@ -20,12 +20,14 @@ type UIColors struct {
 
 // Config represents the main configuration structure for the ai-commit tool.
 type Config struct {
-	APIURL      string            `json:"api_url"`
-	APIKey      string            `json:"api_key"`
-	ModelName   string            `json:"model_name"`
-	UIColors    UIColors          `json:"ui_colors"`
-	Modes       map[string]string `json:"modes"`
-	DefaultMode string            `json:"default_mode"`
+	APIURL        string            `json:"api_url"`
+	APIKey        string            `json:"api_key"`
+	ModelName     string            `json:"model_name"`
+	MaxDiffLength int               `json:"max_diff_length"`
+	ExcludeFiles  []string          `json:"exclude_files"`
+	UIColors      UIColors          `json:"ui_colors"`
+	Modes         map[string]string `json:"modes"`
+	DefaultMode   string            `json:"default_mode"`
 }
 
 // LoadConfig reads the configuration from the user's config directory.
@@ -46,8 +48,17 @@ func LoadConfig() (*Config, error) {
 		}
 
 		defaultCfg := &Config{
-			APIURL:    "https://api.openai.com/v1/chat/completions",
-			ModelName: "gpt-4o",
+			APIURL:        "https://api.openai.com/v1/chat/completions",
+			ModelName:     "gpt-4o",
+			MaxDiffLength: 2000,
+			ExcludeFiles: []string{
+				"package-lock.json",
+				"go.sum",
+				"*.svg",
+				"*.png",
+				"*.jpg",
+				"*.pdf",
+			},
 			Modes: map[string]string{
 				"pro":   "You are a professional software engineer. Generate a concise commit message based on the diff below.",
 				"troll": "You are a sarcastic dev. Roast the code and generate a funny commit message.",

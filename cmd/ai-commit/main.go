@@ -68,7 +68,7 @@ func main() {
 	}
 
 	// 3. Get Staged Diff
-	diff, err := git.GetStagedDiff()
+	diff, err := git.GetStagedDiff(cfg)
 	if err != nil {
 		tui.PrintError(err.Error())
 		os.Exit(1)
