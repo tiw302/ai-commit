@@ -1,11 +1,11 @@
-# ai-commit
+# ai-commit ( •⌄• )✧
 
 A humble AI-powered git commit message generator written in Go.
 Made with care by a developer who is still learning and exploring.
 
 ---
 
-Hello! I am still quite new to the Go ecosystem, and I built this small tool to help myself (and hopefully others) write more consistent commit messages using AI. It is a simple project, but I am trying my best to make it useful and well-structured.
+Hello! I am still quite new to the Go ecosystem, and I built this small tool to help myself (and hopefully others) write more consistent commit messages using AI. It is a simple project, but I am trying my best to make it useful and well-structured. ( ◡‿◡ *)
 
 ## Quick Start (3 Steps)
 
@@ -92,10 +92,8 @@ make clean    # Remove the build artifacts and clean Go cache
 
 ---
 
-## Contributing
-
-As a beginner, I am very open to feedback. If you find any bugs or have suggestions to make this tool better, please feel free to open an issue or submit a pull request. I would be happy to learn from your expertise.
+## Contributing (｡◕‿◕｡)
+I am just a beginner, so please be kind! If you find a bug or have an idea to make this tool even better, feel free to open an issue or send a PR. I am always happy to learn from you! (✿◠‿◠)
 
 ## License
-
 MIT
