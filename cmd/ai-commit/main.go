@@ -74,13 +74,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	// 4. Generate Commit Message via AI
+	// 4. Initialize AI Provider
+	provider, err := api.NewProvider(cfg)
+	if err != nil {
+		tui.PrintError(fmt.Sprintf("AI Provider error: %v", err))
+		os.Exit(1)
+	}
+
+	// 5. Generate Commit Message via AI
 	var commitMessage string
 	for {
 		stopChan := make(chan bool)
 		go ui.LoadingSpinner(stopChan)
 
-		msg, err := api.GenerateCommitMessage(cfg, prompt, diff)
+		msg, err := provider.GenerateCommitMessage(prompt, diff)
 		stopChan <- true
 		if err != nil {
 			tui.PrintError(fmt.Sprintf("AI Generation failed: %v", err))
@@ -90,7 +97,7 @@ func main() {
 		commitMessage = strings.TrimSpace(msg)
 		fmt.Printf("\n\n%sProposed Commit Message:%s\n%s\n", tui.Info, "\033[0m", commitMessage)
 
-		// 5. Interactive Prompt
+		// 6. Interactive Prompt
 		choice := tui.AskForConfirmation()
 		switch choice {
 		case "y", "yes":
