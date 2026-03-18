@@ -10,6 +10,25 @@ import (
 
 	"github.com/tiw302/ai-commit/internal/config"
 )
+
+// AIProvider is the interface that all AI backends must implement.
+type AIProvider interface {
+	GenerateCommitMessage(prompt, diff string) (string, error)
+}
+
+// NewProvider returns the appropriate AIProvider based on configuration.
+func NewProvider(cfg *config.Config) (AIProvider, error) {
+	switch cfg.Provider {
+	case "openai":
+		return &OpenAIProvider{cfg: cfg}, nil
+	case "ollama":
+		// TODO: Implement OllamaProvider
+		return nil, fmt.Errorf("ollama provider is not yet implemented")
+	default:
+		return nil, fmt.Errorf("unknown AI provider: %s", cfg.Provider)
+	}
+}
+
 // Message represents a single chat message in the conversation.
 type Message struct {
 	Role    string `json:"role"`
@@ -32,12 +51,17 @@ type OpenAIResponse struct {
 	} `json:"error"`
 }
 
+// OpenAIProvider implements the AIProvider interface for OpenAI.
+type OpenAIProvider struct {
+	cfg *config.Config
+}
+
 // GenerateCommitMessage sends the git diff and the selected prompt to the AI provider.
 // It returns the generated commit message or an error if the request fails.
-func GenerateCommitMessage(cfg *config.Config, prompt, diff string) (string, error) {
+func (p *OpenAIProvider) GenerateCommitMessage(prompt, diff string) (string, error) {
 	// Construct the request payload.
 	reqBody := OpenAIRequest{
-		Model: cfg.ModelName,
+		Model: p.cfg.ModelName,
 		Messages: []Message{
 			{Role: "system", Content: prompt},
 			{Role: "user", Content: "Here is the git diff of my changes:\n\n" + diff},
@@ -50,15 +74,15 @@ func GenerateCommitMessage(cfg *config.Config, prompt, diff string) (string, err
 	}
 
 	// Prepare the HTTP request.
-	req, err := http.NewRequest("POST", cfg.APIURL, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", p.cfg.APIURL, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return "", fmt.Errorf("failed to create HTTP request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 	// Set the API Key (if provided in config or env).
-	if cfg.APIKey != "" {
-		req.Header.Set("Authorization", "Bearer "+cfg.APIKey)
+	if p.cfg.APIKey != "" {
+		req.Header.Set("Authorization", "Bearer "+p.cfg.APIKey)
 	}
 
 	// Execute the request with timeout.
