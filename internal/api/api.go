@@ -22,12 +22,13 @@ func NewProvider(cfg *config.Config) (AIProvider, error) {
 	case "openai":
 		return &OpenAIProvider{cfg: cfg}, nil
 	case "ollama":
-		// TODO: Implement OllamaProvider
-		return nil, fmt.Errorf("ollama provider is not yet implemented")
+		return &OllamaProvider{cfg: cfg}, nil
 	default:
 		return nil, fmt.Errorf("unknown AI provider: %s", cfg.Provider)
 	}
 }
+
+// --- OpenAI Provider ---
 
 // Message represents a single chat message in the conversation.
 type Message struct {
@@ -56,10 +57,7 @@ type OpenAIProvider struct {
 	cfg *config.Config
 }
 
-// GenerateCommitMessage sends the git diff and the selected prompt to the AI provider.
-// It returns the generated commit message or an error if the request fails.
 func (p *OpenAIProvider) GenerateCommitMessage(prompt, diff string) (string, error) {
-	// Construct the request payload.
 	reqBody := OpenAIRequest{
 		Model: p.cfg.ModelName,
 		Messages: []Message{
@@ -70,42 +68,108 @@ func (p *OpenAIProvider) GenerateCommitMessage(prompt, diff string) (string, err
 
 	jsonData, err := json.Marshal(reqBody)
 	if err != nil {
-		return "", fmt.Errorf("failed to encode request data: %w", err)
+		return "", err
 	}
 
-	// Prepare the HTTP request.
 	req, err := http.NewRequest("POST", p.cfg.APIURL, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return "", fmt.Errorf("failed to create HTTP request: %w", err)
+		return "", err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	// Set the API Key (if provided in config or env).
 	if p.cfg.APIKey != "" {
 		req.Header.Set("Authorization", "Bearer "+p.cfg.APIKey)
 	}
 
-	// Execute the request with timeout.
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("failed to connect to the AI API: %w", err)
+		return "", err
 	}
 	defer resp.Body.Close()
+
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("AI API returned an error (Status %d): %s", resp.StatusCode, string(body))
+		return "", fmt.Errorf("API error (Status %d): %s", resp.StatusCode, string(body))
 	}
 
 	var aiResp OpenAIResponse
 	if err := json.Unmarshal(body, &aiResp); err != nil {
-		return "", fmt.Errorf("failed to decode AI response: %w", err)
+		return "", err
 	}
 
-	// Extract the generated message from the first choice.
 	if len(aiResp.Choices) == 0 {
-		return "", fmt.Errorf("AI returned an empty response")
+		return "", fmt.Errorf("empty response from AI")
 	}
 
 	return aiResp.Choices[0].Message.Content, nil
+}
+
+// --- Ollama Provider ---
+
+// OllamaRequest represents the request payload for Ollama's Chat API.
+type OllamaRequest struct {
+	Model    string    `json:"model"`
+	Messages []Message `json:"messages"`
+	Stream   bool      `json:"stream"`
+}
+
+// OllamaResponse represents the response structure from Ollama's Chat API.
+type OllamaResponse struct {
+	Model   string  `json:"model"`
+	Message Message `json:"message"`
+	Done    bool    `json:"done"`
+}
+
+// OllamaProvider implements the AIProvider interface for local Ollama.
+type OllamaProvider struct {
+	cfg *config.Config
+}
+
+func (p *OllamaProvider) GenerateCommitMessage(prompt, diff string) (string, error) {
+	reqBody := OllamaRequest{
+		Model: p.cfg.ModelName,
+		Messages: []Message{
+			{Role: "system", Content: prompt},
+			{Role: "user", Content: "Here is the git diff of my changes:\n\n" + diff},
+		},
+		Stream: false,
+	}
+
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", err
+	}
+
+	// Default Ollama URL if not provided: http://localhost:11434/api/chat
+	apiURL := p.cfg.APIURL
+	if apiURL == "" {
+		apiURL = "http://localhost:11434/api/chat"
+	}
+
+	req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 60 * time.Second} // Ollama might be slow on local machines
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("ollama error (Status %d): %s", resp.StatusCode, string(body))
+	}
+
+	var ollamaResp OllamaResponse
+	if err := json.Unmarshal(body, &ollamaResp); err != nil {
+		return "", err
+	}
+
+	return ollamaResp.Message.Content, nil
 }

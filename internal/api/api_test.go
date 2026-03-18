@@ -52,3 +52,47 @@ func TestOpenAIProvider_GenerateCommitMessage(t *testing.T) {
 		t.Errorf("expected %q, got %q", expected, msg)
 	}
 }
+
+func TestOllamaProvider_GenerateCommitMessage(t *testing.T) {
+	// 1. Create a mock Ollama API server
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Mock response from Ollama
+		response := OllamaResponse{
+			Model: "llama3",
+			Message: Message{
+				Role:    "assistant",
+				Content: "refactor: implement interface",
+			},
+			Done: true,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer mockServer.Close()
+
+	// 2. Prepare configuration
+	cfg := &config.Config{
+		Provider:  "ollama",
+		APIURL:    mockServer.URL,
+		ModelName: "llama3",
+	}
+
+	// 3. Initialize Provider
+	provider, err := NewProvider(cfg)
+	if err != nil {
+		t.Fatalf("NewProvider returned error: %v", err)
+	}
+
+	// 4. Call method
+	msg, err := provider.GenerateCommitMessage("prompt", "diff")
+	if err != nil {
+		t.Fatalf("GenerateCommitMessage returned error: %v", err)
+	}
+
+	// 5. Verify
+	expected := "refactor: implement interface"
+	if msg != expected {
+		t.Errorf("expected %q, got %q", expected, msg)
+	}
+}
