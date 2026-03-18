@@ -35,11 +35,12 @@ ai-commit
 
 ## Features
 
-- Zero-Config: Works out of the box by creating a default configuration for you.
-- Custom Modes: Support for different prompt modes like professional or casual.
-- Interactive Editing: Option to edit the AI-generated message in your system editor.
-- Smart Filtering: Automatically ignores large or non-text files to optimize API usage.
-- Developer Friendly: Simple CLI interface with clear feedback, help documentation, and version tracking.
+- **Multi-Provider Support:** Architected to support multiple AI providers (OpenAI, Ollama, etc.).
+- **Zero-Config:** Works out of the box by creating a default configuration for you.
+- **Custom Modes:** Support for different prompt modes like professional or casual.
+- **Interactive Editing:** Option to edit the AI-generated message in your system editor.
+- **Smart Filtering:** Automatically ignores large or non-text files to optimize API usage.
+- **Developer Friendly:** Simple CLI interface with clear feedback, help documentation, and version tracking.
 
 ## Configuration
 
@@ -47,6 +48,7 @@ The tool creates a configuration file at `~/.config/ai-commit/config.json`. You 
 
 ```json
 {
+  "provider": "openai",
   "api_url": "https://api.openai.com/v1/chat/completions",
   "api_key": "",
   "model_name": "gpt-4o",
@@ -94,9 +96,9 @@ make clean    # Remove build artifacts and clean cache
 
 ## Roadmap
 
-Currently, `ai-commit` only supports OpenAI-compatible APIs. We are working on expanding support to include:
+The tool is now built with an extensible architecture to support various AI backends. We are working on expanding support to include:
 
-- **Ollama Support:** Integration for local LLMs via Ollama.
+- **Ollama Support:** Integration for local LLMs via Ollama (Coming soon!).
 - **Additional Providers:** Support for Anthropic Claude and Google Gemini.
 - **Git Hook:** Option to run automatically during `git commit`.
 
