@@ -20,6 +20,7 @@ type UIColors struct {
 
 // Config represents the main configuration structure for the ai-commit tool.
 type Config struct {
+	Provider      string            `json:"provider"`
 	APIURL        string            `json:"api_url"`
 	APIKey        string            `json:"api_key"`
 	ModelName     string            `json:"model_name"`
@@ -48,6 +49,7 @@ func LoadConfig() (*Config, error) {
 		}
 
 		defaultCfg := &Config{
+			Provider:      "openai",
 			APIURL:        "https://api.openai.com/v1/chat/completions",
 			ModelName:     "gpt-4o",
 			MaxDiffLength: 2000,
