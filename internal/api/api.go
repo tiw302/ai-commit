@@ -23,6 +23,8 @@ func NewProvider(cfg *config.Config) (AIProvider, error) {
 		return &OpenAIProvider{cfg: cfg}, nil
 	case "ollama":
 		return &OllamaProvider{cfg: cfg}, nil
+	case "anthropic":
+		return &AnthropicProvider{cfg: cfg}, nil
 	default:
 		return nil, fmt.Errorf("unknown AI provider: %s", cfg.Provider)
 	}
@@ -172,4 +174,80 @@ func (p *OllamaProvider) GenerateCommitMessage(prompt, diff string) (string, err
 	}
 
 	return ollamaResp.Message.Content, nil
+}
+
+// --- Anthropic Provider ---
+
+// AnthropicRequest represents the request payload for Anthropic's Messages API.
+type AnthropicRequest struct {
+	Model     string    `json:"model"`
+	MaxTokens int       `json:"max_tokens"`
+	System    string    `json:"system"`
+	Messages  []Message `json:"messages"`
+}
+
+// AnthropicResponse represents the response structure from Anthropic's Messages API.
+type AnthropicResponse struct {
+	Content []struct {
+		Text string `json:"text"`
+		Type string `json:"type"`
+	} `json:"content"`
+}
+
+// AnthropicProvider implements the AIProvider interface for Anthropic Claude.
+type AnthropicProvider struct {
+	cfg *config.Config
+}
+
+func (p *AnthropicProvider) GenerateCommitMessage(prompt, diff string) (string, error) {
+	reqBody := AnthropicRequest{
+		Model:     p.cfg.ModelName,
+		MaxTokens: 1024,
+		System:    prompt,
+		Messages: []Message{
+			{Role: "user", Content: "Here is the git diff of my changes:\n\n" + diff},
+		},
+	}
+
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", err
+	}
+
+	apiURL := p.cfg.APIURL
+	if apiURL == "" {
+		apiURL = "https://api.anthropic.com/v1/messages"
+	}
+
+	req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("x-api-key", p.cfg.APIKey)
+	req.Header.Set("anthropic-version", "2023-06-01")
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("anthropic error (Status %d): %s", resp.StatusCode, string(body))
+	}
+
+	var anthroResp AnthropicResponse
+	if err := json.Unmarshal(body, &anthroResp); err != nil {
+		return "", err
+	}
+
+	if len(anthroResp.Content) == 0 {
+		return "", fmt.Errorf("empty response from anthropic")
+	}
+
+	return anthroResp.Content[0].Text, nil
 }
