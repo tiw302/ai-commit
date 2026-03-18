@@ -46,23 +46,24 @@ ai-commit
 
 The tool creates a configuration file at `~/.config/ai-commit/config.json`. You can customize it to your heart's content:
 
+### OpenAI Example
 ```json
 {
   "provider": "openai",
   "api_url": "https://api.openai.com/v1/chat/completions",
-  "api_key": "",
+  "api_key": "sk-...",
   "model_name": "gpt-4o",
-  "ui_colors": {
-    "success": "\u001b[32m",
-    "error": "\u001b[31m",
-    "warning": "\u001b[33m",
-    "info": "\u001b[34m"
-  },
-  "modes": {
-    "pro": "You are a professional software engineer...",
-    "troll": "You are a sarcastic dev..."
-  },
-  "default_mode": "pro"
+  ...
+}
+```
+
+### Ollama Example (Local LLM)
+```json
+{
+  "provider": "ollama",
+  "api_url": "http://localhost:11434/api/chat",
+  "model_name": "llama3",
+  ...
 }
 ```
 
