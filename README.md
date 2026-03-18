@@ -3,12 +3,12 @@
 [![CI](https://github.com/tiw302/ai-commit/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/tiw302/ai-commit/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A humble AI-powered git commit message generator written in Go.
-Made with care by a developer who is still learning and exploring.
+A humble but powerful **Universal AI-powered git commit generator** written in Go.
+One tool to rule all your favorite AI providers: OpenAI, Anthropic, and Local LLMs (Ollama).
 
 ---
 
-Hello! I am still quite new to the Go ecosystem, and I built this small tool to help myself (and hopefully others) write more consistent commit messages using AI. It is a simple project, but I am trying my best to make it useful and well-structured. ( ◡‿◡ *)
+Hello! I am still quite new to the Go ecosystem, and I built this tool to help myself (and hopefully others) write more consistent commit messages using the AI of your choice. ( ◡‿◡ *)
 
 ## Quick Start (3 Steps)
 
@@ -18,60 +18,52 @@ Hello! I am still quite new to the Go ecosystem, and I built this small tool to 
 
 ---
 
-## Example Workflow
-
-```bash
-# 1. You made some changes to your code
-# 2. Add them as usual
-git add .
-
-# 3. Just type:
-ai-commit
-
-# 4. Result:
-# ? Accept this commit? [y]es / [n]o / [e]dit / [r]egenerate: y
-# ✔ Changes committed successfully!
-```
-
 ## Features
 
-- **Multi-Provider Support:** Architected to support multiple AI providers (OpenAI, Ollama, etc.).
-- **Zero-Config:** Works out of the box by creating a default configuration for you.
-- **Custom Modes:** Support for different prompt modes like professional or casual.
-- **Interactive Editing:** Option to edit the AI-generated message in your system editor.
-- **Smart Filtering:** Automatically ignores large or non-text files to optimize API usage.
-- **Developer Friendly:** Simple CLI interface with clear feedback, help documentation, and version tracking.
+- **Universal Provider Support:** Works with OpenAI, Anthropic (Claude), and Ollama (Local LLMs).
+- **OpenAI Compatible:** Supports any API that follows OpenAI's format (Groq, DeepSeek, OpenRouter, Mistral, etc.).
+- **Zero-Config:** Automatically generates a default configuration file for you.
+- **Custom Modes:** Support for different prompt styles (e.g., `pro` for serious work, `troll` for fun).
+- **Interactive TUI:** Review, edit in your preferred editor, or regenerate the message instantly.
+- **Smart Filtering:** Automatically ignores binaries and large files to save tokens.
 
 ## Configuration
 
-The tool creates a configuration file at `~/.config/ai-commit/config.json`. You can customize it to your heart's content:
+The tool creates a config file at `~/.config/ai-commit/config.json`. You can switch providers easily:
 
-### OpenAI Example
+### 1. OpenAI (or Groq, DeepSeek, OpenRouter)
 ```json
 {
   "provider": "openai",
   "api_url": "https://api.openai.com/v1/chat/completions",
-  "api_key": "sk-...",
-  "model_name": "gpt-4o",
-  ...
+  "api_key": "YOUR_API_KEY",
+  "model_name": "gpt-4o"
+}
+```
+*Tip: To use **Groq**, just change `api_url` to `https://api.groq.com/openai/v1/chat/completions`.*
+
+### 2. Anthropic (Claude)
+```json
+{
+  "provider": "anthropic",
+  "api_url": "https://api.anthropic.com/v1/messages",
+  "api_key": "YOUR_ANTHROPIC_KEY",
+  "model_name": "claude-3-5-sonnet-20240620"
 }
 ```
 
-### Ollama Example (Local LLM)
+### 3. Ollama (Local LLM)
 ```json
 {
   "provider": "ollama",
   "api_url": "http://localhost:11434/api/chat",
-  "model_name": "llama3",
-  ...
+  "model_name": "llama3"
 }
 ```
 
 ## Usage
 
-Using the tool is meant to be as simple as possible:
-
-1. Stage your changes as usual: `git add .`
+1. Stage your changes: `git add .`
 2. Run the tool: `ai-commit`
 3. Review the AI's suggestion:
    - Press **y** to accept and commit.
@@ -82,31 +74,19 @@ Using the tool is meant to be as simple as possible:
 
 - `-m "context"`: Give the AI a hint (e.g., `ai-commit -m "fix UI bug"`).
 - `--mode`: Change the style (e.g., `ai-commit --mode troll`).
-- `-h, --help`: Show help and examples.
 - `-v, --version`: Show the version.
-
-## Development
-
-I have included a few tools to help with development and ensure code quality:
-
-```bash
-make build    # Build the binary locally
-make test     # Run the automated unit tests
-make clean    # Remove build artifacts and clean cache
-```
 
 ## Roadmap
 
-The tool is now built with an extensible architecture to support various AI backends. We are working on expanding support to include:
-
-- **Ollama Support:** Integration for local LLMs via Ollama (Coming soon!).
-- **Additional Providers:** Support for Anthropic Claude and Google Gemini.
-- **Git Hook:** Option to run automatically during `git commit`.
+- [x] **Multi-backend support** (OpenAI, Ollama, Anthropic)
+- [ ] **Google Gemini support** (Coming soon!)
+- [ ] **Custom System Prompts** via config file
+- [ ] **Git Hook Integration** (Run automatically on `git commit`)
 
 ---
 
 ## Contributing (｡◕‿◕｡)
-I am just a beginner, so please be kind! If you find a bug or have an idea to make this tool even better, feel free to open an issue or send a PR. I am always happy to learn from you! (✿◠‿◠)
+I am just a beginner, so please be kind! If you find a bug or have an idea, feel free to open an issue or send a PR. I am always happy to learn from you! (✿◠‿◠)
 
 ## License
 MIT
