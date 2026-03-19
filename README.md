@@ -89,4 +89,5 @@ The tool creates a config file at `~/.config/ai-commit/config.json`. You can swi
 I am just a beginner, so please be kind! If you find a bug or have an idea, feel free to open an issue or send a PR. I am always happy to learn from you! (✿◠‿◠)
 
 ## License
-MIT
+
+This project is licensed under the [MIT License](LICENSE) - see the [LICENSE](LICENSE) file for details. 
