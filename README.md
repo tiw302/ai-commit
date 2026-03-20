@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A humble but powerful **Universal AI-powered git commit generator** written in Go.
-One tool to rule all your favorite AI providers: OpenAI, Anthropic, and Local LLMs (Ollama).
+One tool to rule all your favorite AI providers: OpenAI, Anthropic, Google Gemini, and Local LLMs (Ollama).
 
 ---
 
@@ -20,7 +20,7 @@ Hello! I am still quite new to the Go ecosystem, and I built this tool to help m
 
 ## Features
 
-- **Universal Provider Support:** Works with OpenAI, Anthropic (Claude), and Ollama (Local LLMs).
+- **Universal Provider Support:** Works with OpenAI, Anthropic (Claude), Google Gemini, and Ollama (Local LLMs).
 - **OpenAI Compatible:** Supports any API that follows OpenAI's format (Groq, DeepSeek, OpenRouter, Mistral, etc.).
 - **Zero-Config:** Automatically generates a default configuration file for you.
 - **Custom Modes:** Support for different prompt styles (e.g., `pro` for serious work, `troll` for fun).
@@ -52,7 +52,16 @@ The tool creates a config file at `~/.config/ai-commit/config.json`. You can swi
 }
 ```
 
-### 3. Ollama (Local LLM)
+### 3. Google Gemini
+```json
+{
+  "provider": "gemini",
+  "api_key": "YOUR_GEMINI_KEY",
+  "model_name": "gemini-1.5-flash"
+}
+```
+
+### 4. Ollama (Local LLM)
 ```json
 {
   "provider": "ollama",
@@ -78,8 +87,7 @@ The tool creates a config file at `~/.config/ai-commit/config.json`. You can swi
 
 ## Roadmap
 
-- [x] **Multi-backend support** (OpenAI, Ollama, Anthropic)
-- [ ] **Google Gemini support** (Coming soon!)
+- [x] **Multi-backend support** (OpenAI, Ollama, Anthropic, Gemini)
 - [ ] **Custom System Prompts** via config file
 - [ ] **Git Hook Integration** (Run automatically on `git commit`)
 
