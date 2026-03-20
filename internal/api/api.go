@@ -25,18 +25,20 @@ func NewProvider(cfg *config.Config) (AIProvider, error) {
 		return &OllamaProvider{cfg: cfg}, nil
 	case "anthropic":
 		return &AnthropicProvider{cfg: cfg}, nil
+	case "gemini":
+		return &GeminiProvider{cfg: cfg}, nil
 	default:
 		return nil, fmt.Errorf("unknown AI provider: %s", cfg.Provider)
 	}
 }
-
-// --- OpenAI Provider ---
 
 // Message represents a single chat message in the conversation.
 type Message struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
 }
+
+// --- OpenAI Provider ---
 
 // OpenAIRequest represents the payload structure for Chat Completion APIs.
 type OpenAIRequest struct {
@@ -250,4 +252,116 @@ func (p *AnthropicProvider) GenerateCommitMessage(prompt, diff string) (string, 
 	}
 
 	return anthroResp.Content[0].Text, nil
+}
+
+// --- Gemini Provider ---
+
+// GeminiRequest represents the structure for Google's Generative Language API.
+// It supports system instructions and content parts.
+type GeminiRequest struct {
+	Contents          []GeminiContent `json:"contents"`
+	SystemInstruction *GeminiContent  `json:"system_instruction,omitempty"`
+}
+
+// GeminiContent represents a single content block in Gemini API.
+type GeminiContent struct {
+	Parts []GeminiPart `json:"parts"`
+}
+
+// GeminiPart represents a text or file part in Gemini API.
+type GeminiPart struct {
+	Text string `json:"text"`
+}
+
+// GeminiResponse represents the response structure from Gemini API.
+type GeminiResponse struct {
+	Candidates []struct {
+		Content GeminiContent `json:"content"`
+	} `json:"candidates"`
+	Error struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+		Status  string `json:"status"`
+	} `json:"error"`
+}
+
+// GeminiProvider implements the AIProvider interface for Google Gemini.
+// It uses the standard Generative Language API.
+type GeminiProvider struct {
+	cfg *config.Config
+}
+
+// GenerateCommitMessage sends a prompt and diff to Gemini and returns the generated message.
+func (p *GeminiProvider) GenerateCommitMessage(prompt, diff string) (string, error) {
+	// Construct the request body following Google's specification.
+	reqBody := GeminiRequest{
+		SystemInstruction: &GeminiContent{
+			Parts: []GeminiPart{{Text: prompt}},
+		},
+		Contents: []GeminiContent{
+			{
+				Parts: []GeminiPart{{Text: "Here is the git diff of my changes:\n\n" + diff}},
+			},
+		},
+	}
+
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	// Default Gemini API URL template.
+	// We use v1beta to support system instructions.
+	apiURL := p.cfg.APIURL
+	if apiURL == "" {
+		// Use gemini-1.5-flash as a fast and cost-effective default.
+		model := p.cfg.ModelName
+		if model == "" {
+			model = "gemini-1.5-flash"
+		}
+		apiURL = fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent", model)
+	}
+
+	// Append API key as a query parameter for Google API.
+	fullURL := fmt.Sprintf("%s?key=%s", apiURL, p.cfg.APIKey)
+
+	req, err := http.NewRequest("POST", fullURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		var errResp GeminiResponse
+		_ = json.Unmarshal(body, &errResp)
+		if errResp.Error.Message != "" {
+			return "", fmt.Errorf("gemini error (%s): %s", errResp.Error.Status, errResp.Error.Message)
+		}
+		return "", fmt.Errorf("gemini error (Status %d): %s", resp.StatusCode, string(body))
+	}
+
+	var geminiResp GeminiResponse
+	if err := json.Unmarshal(body, &geminiResp); err != nil {
+		return "", fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	// Check if we have candidates and content.
+	if len(geminiResp.Candidates) == 0 || len(geminiResp.Candidates[0].Content.Parts) == 0 {
+		return "", fmt.Errorf("empty response from Gemini")
+	}
+
+	return geminiResp.Candidates[0].Content.Parts[0].Text, nil
 }
