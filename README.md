@@ -1,4 +1,4 @@
-# ai-commit ( •⌄• )✧
+# ai-commit
 
 [![CI](https://github.com/tiw302/ai-commit/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/tiw302/ai-commit/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -8,7 +8,7 @@ One tool to rule all your favorite AI providers: OpenAI, Anthropic, Google Gemin
 
 ---
 
-Hello! I am still quite new to the Go ecosystem, and I built this tool to help myself (and hopefully others) write more consistent commit messages using the AI of your choice. ( ◡‿◡ *)
+`ai-commit` helps you write consistent, high-quality commit messages by leveraging Large Language Models (LLMs) to analyze your staged changes. It supports multiple providers and offers a flexible configuration system.
 
 ## Quick Start (3 Steps)
 
@@ -21,26 +21,27 @@ Hello! I am still quite new to the Go ecosystem, and I built this tool to help m
 ## Features
 
 - **Universal Provider Support:** Works with OpenAI, Anthropic (Claude), Google Gemini, and Ollama (Local LLMs).
-- **Interactive Configuration:** easy setup wizard (`--configure`) to switch providers and keys instantly.
+- **Interactive Configuration:** Easy setup wizard (`--configure`) to switch providers and keys instantly.
 - **OpenAI Compatible:** Supports any API that follows OpenAI's format (Groq, DeepSeek, OpenRouter, Mistral, etc.).
-- **Zero-Config:** Automatically generates a default configuration file for you.
-- **Custom Modes:** Support for different prompt styles (e.g., `pro` for serious work, `troll` for fun).
+- **Zero-Config:** Automatically generates a default configuration file.
+- **Custom Modes:** Support for different prompt styles (e.g., `pro`, `conventional`).
 - **Interactive TUI:** Review, edit in your preferred editor, or regenerate the message instantly.
-- **Smart Filtering:** Automatically ignores binaries and large files to save tokens.
+- **Smart Filtering:** Automatically ignores binaries and large lockfiles to optimize token usage.
 
 ## Configuration
 
 ### Easy Setup (Recommended)
-You can easily switch providers or update your API key without editing files manually:
+You can easily switch providers or update your API key using the built-in wizard:
 ```bash
 ai-commit --configure
 ```
-This wizard will guide you through selecting a provider (OpenAI, Gemini, Ollama, Anthropic), entering your API key, and choosing a model.
 
 ### Manual Configuration
-The tool creates a config file at `~/.config/ai-commit/config.json`. You can switch providers easily:
+The tool creates a config file at `~/.config/ai-commit/config.json`.
 
-### 1. OpenAI (or Groq, DeepSeek, OpenRouter)
+#### Supported Providers
+
+**1. OpenAI (or Groq, DeepSeek, OpenRouter)**
 ```json
 {
   "provider": "openai",
@@ -49,9 +50,8 @@ The tool creates a config file at `~/.config/ai-commit/config.json`. You can swi
   "model_name": "gpt-4o"
 }
 ```
-*Tip: To use **Groq**, just change `api_url` to `https://api.groq.com/openai/v1/chat/completions`.*
 
-### 2. Anthropic (Claude)
+**2. Anthropic (Claude)**
 ```json
 {
   "provider": "anthropic",
@@ -61,7 +61,7 @@ The tool creates a config file at `~/.config/ai-commit/config.json`. You can swi
 }
 ```
 
-### 3. Google Gemini
+**3. Google Gemini**
 ```json
 {
   "provider": "gemini",
@@ -70,7 +70,7 @@ The tool creates a config file at `~/.config/ai-commit/config.json`. You can swi
 }
 ```
 
-### 4. Ollama (Local LLM)
+**4. Ollama (Local LLM)**
 ```json
 {
   "provider": "ollama",
@@ -79,11 +79,16 @@ The tool creates a config file at `~/.config/ai-commit/config.json`. You can swi
 }
 ```
 
-### Custom System Prompt (Optional)
-You can set a global custom system prompt that overrides the default mode:
+#### Advanced Settings
+
+- **`system_prompt`**: Override the default system instructions globally.
+- **`max_diff_length`**: Set the maximum number of characters for the diff (default: 50,000).
+- **`exclude_files`**: List of glob patterns to ignore (e.g., `["*.lock", "*.svg"]`).
+
 ```json
 {
-  "system_prompt": "You are a poetic coding assistant. Write commit messages as haikus."
+  "system_prompt": "You are a senior developer. Write commit messages using Conventional Commits.",
+  "max_diff_length": 50000
 }
 ```
 
@@ -99,6 +104,7 @@ You can set a global custom system prompt that overrides the default mode:
 ### CLI Flags
 
 - `-m "context"`: Give the AI a hint (e.g., `ai-commit -m "fix UI bug"`).
+- `--configure`: Run the interactive configuration wizard.
 - `--mode`: Change the style (e.g., `ai-commit --mode troll`).
 - `-v, --version`: Show the version.
 
@@ -111,9 +117,9 @@ You can set a global custom system prompt that overrides the default mode:
 
 ---
 
-## Contributing (｡◕‿◕｡)
-I am just a beginner, so please be kind! If you find a bug or have an idea, feel free to open an issue or send a PR. I am always happy to learn from you! (✿◠‿◠)
+## Contributing
+Contributions are welcome! Please feel free to open an issue or submit a pull request for any bugs or feature requests.
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE) - see the [LICENSE](LICENSE) file for details. 
+This project is licensed under the [MIT License](LICENSE) - see the [LICENSE](LICENSE) file for details.
