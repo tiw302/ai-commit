@@ -70,6 +70,14 @@ The tool creates a config file at `~/.config/ai-commit/config.json`. You can swi
 }
 ```
 
+### Custom System Prompt (Optional)
+You can set a global custom system prompt that overrides the default mode:
+```json
+{
+  "system_prompt": "You are a poetic coding assistant. Write commit messages as haikus."
+}
+```
+
 ## Usage
 
 1. Stage your changes: `git add .`
@@ -88,7 +96,7 @@ The tool creates a config file at `~/.config/ai-commit/config.json`. You can swi
 ## Roadmap
 
 - [x] **Multi-backend support** (OpenAI, Ollama, Anthropic, Gemini)
-- [ ] **Custom System Prompts** via config file
+- [x] **Custom System Prompts** via config file
 - [ ] **Git Hook Integration** (Run automatically on `git commit`)
 
 ---
