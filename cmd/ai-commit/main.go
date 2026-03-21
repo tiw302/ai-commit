@@ -198,12 +198,6 @@ func runConfigurationWizard(tui *ui.UI, cfg *config.Config) {
 	if apiKey != "" {
 		cfg.APIKey = apiKey
 	}
-	// Note: If user presses Enter for API key and it was already set, we keep it.
-	// But PromptUser with empty default returns empty string if user presses Enter.
-	// So we need to handle "keep existing" manually if we don't pass the actual key as default.
-	// Passing actual key as default to PromptUser would show it in plain text, which is bad.
-	// So the previous logic `if apiKey != ""` was actually correct for the API Key specifically.
-	// I will revert to that logic for API Key only.
 
 	// 3. Model Name
 	cfg.ModelName = tui.PromptUser("Enter Model Name", cfg.ModelName)
