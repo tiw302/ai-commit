@@ -13,7 +13,7 @@ Hello! I am still quite new to the Go ecosystem, and I built this tool to help m
 ## Quick Start (3 Steps)
 
 1. **Install:** `make install` (or `go build -o ai-commit ./cmd/ai-commit`)
-2. **Setup:** `export AI_COMMIT_API_KEY="your-key-here"`
+2. **Setup:** `ai-commit --configure` (Interactive setup wizard)
 3. **Run:** `git add . && ai-commit`
 
 ---
@@ -21,6 +21,7 @@ Hello! I am still quite new to the Go ecosystem, and I built this tool to help m
 ## Features
 
 - **Universal Provider Support:** Works with OpenAI, Anthropic (Claude), Google Gemini, and Ollama (Local LLMs).
+- **Interactive Configuration:** easy setup wizard (`--configure`) to switch providers and keys instantly.
 - **OpenAI Compatible:** Supports any API that follows OpenAI's format (Groq, DeepSeek, OpenRouter, Mistral, etc.).
 - **Zero-Config:** Automatically generates a default configuration file for you.
 - **Custom Modes:** Support for different prompt styles (e.g., `pro` for serious work, `troll` for fun).
@@ -29,6 +30,14 @@ Hello! I am still quite new to the Go ecosystem, and I built this tool to help m
 
 ## Configuration
 
+### Easy Setup (Recommended)
+You can easily switch providers or update your API key without editing files manually:
+```bash
+ai-commit --configure
+```
+This wizard will guide you through selecting a provider (OpenAI, Gemini, Ollama, Anthropic), entering your API key, and choosing a model.
+
+### Manual Configuration
 The tool creates a config file at `~/.config/ai-commit/config.json`. You can switch providers easily:
 
 ### 1. OpenAI (or Groq, DeepSeek, OpenRouter)
@@ -97,6 +106,7 @@ You can set a global custom system prompt that overrides the default mode:
 
 - [x] **Multi-backend support** (OpenAI, Ollama, Anthropic, Gemini)
 - [x] **Custom System Prompts** via config file
+- [x] **Interactive Configuration Wizard** (`--configure`)
 - [ ] **Git Hook Integration** (Run automatically on `git commit`)
 
 ---
