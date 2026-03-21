@@ -79,6 +79,27 @@ func LoadingSpinner(stopChan chan bool) {
 	}
 }
 
+// PromptUser displays a prompt and reads user input.
+// If defaultValue is provided, it is shown in brackets and used if the user just presses Enter.
+func (u *UI) PromptUser(label string, defaultValue string) string {
+	var promptMsg string
+	if defaultValue != "" {
+		promptMsg = fmt.Sprintf("%s%s [%s]: \033[0m", u.Prompt, label, defaultValue)
+	} else {
+		promptMsg = fmt.Sprintf("%s%s: \033[0m", u.Prompt, label)
+	}
+	fmt.Print(promptMsg)
+
+	reader := bufio.NewReader(os.Stdin)
+	input, _ := reader.ReadString('\n')
+	input = strings.TrimSpace(input)
+
+	if input == "" {
+		return defaultValue
+	}
+	return input
+}
+
 // AskForConfirmation prompts the user for the next action.
 func (u *UI) AskForConfirmation() string {
 	reader := bufio.NewReader(os.Stdin)

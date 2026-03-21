@@ -91,3 +91,30 @@ func LoadConfig() (*Config, error) {
 
 	return &cfg, nil
 }
+
+// SaveConfig writes the configuration to the user's config directory.
+func SaveConfig(cfg *Config) error {
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		return fmt.Errorf("could not determine user config directory: %w", err)
+	}
+
+	appDir := filepath.Join(configDir, "ai-commit")
+	path := filepath.Join(appDir, "config.json")
+
+	// Ensure app directory exists.
+	if err := os.MkdirAll(appDir, 0755); err != nil {
+		return fmt.Errorf("failed to create config directory: %w", err)
+	}
+
+	data, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
+	}
+
+	if err := os.WriteFile(path, data, 0644); err != nil {
+		return fmt.Errorf("failed to write config file: %w", err)
+	}
+
+	return nil
+}

@@ -28,6 +28,7 @@ func main() {
 
 	versionFlag := flag.Bool("v", false, "Print version and exit")
 	versionFullFlag := flag.Bool("version", false, "Print version and exit")
+	configureFlag := flag.Bool("configure", false, "Run the interactive configuration wizard")
 	modeFlag := flag.String("mode", "", "The mode for the commit message (e.g., pro, troll)")
 	contextFlag := flag.String("m", "", "Short user context/instruction for the commit")
 	flag.Parse()
@@ -45,6 +46,12 @@ func main() {
 	if err != nil {
 		tui.PrintError(fmt.Sprintf("Configuration error: %v", err))
 		os.Exit(1)
+	}
+
+	// 0.5 Check for configure flag
+	if *configureFlag {
+		runConfigurationWizard(tui, cfg)
+		return
 	}
 
 	// Apply colors from config
@@ -144,5 +151,59 @@ func main() {
 		default:
 			tui.PrintInfo("Operation cancelled.")
 			return
-		}	}
+		}
+	}
 }
+
+func runConfigurationWizard(tui *ui.UI, cfg *config.Config) {
+	fmt.Println()
+	tui.PrintInfo("Welcome to the ai-commit configuration wizard!")
+	fmt.Println("Press Enter to keep the current value in [brackets].")
+	fmt.Println()
+
+	// 1. Provider
+	provider := tui.PromptUser("Select AI Provider (openai, anthropic, gemini, ollama)", cfg.Provider)
+	if provider != "" {
+		cfg.Provider = provider
+	}
+
+	// 2. API Key
+	// Show a masked version of the current key if it exists
+	currentKeyDisplay := "none"
+	if len(cfg.APIKey) > 4 {
+		currentKeyDisplay = "..." + cfg.APIKey[len(cfg.APIKey)-4:]
+	} else if len(cfg.APIKey) > 0 {
+		currentKeyDisplay = "***"
+	}
+	apiKey := tui.PromptUser(fmt.Sprintf("Enter API Key (current: %s)", currentKeyDisplay), "")
+	if apiKey != "" {
+		cfg.APIKey = apiKey
+	}
+
+	// 3. Model Name
+	modelName := tui.PromptUser("Enter Model Name", cfg.ModelName)
+	if modelName != "" {
+		cfg.ModelName = modelName
+	}
+
+	// 4. API URL (Optional, mostly for Ollama or custom endpoints)
+	apiURL := tui.PromptUser("Enter API URL (optional)", cfg.APIURL)
+	if apiURL != "" {
+		cfg.APIURL = apiURL
+	}
+
+	// 5. System Prompt (Optional)
+	systemPrompt := tui.PromptUser("Enter Global System Prompt (optional)", cfg.SystemPrompt)
+	if systemPrompt != "" {
+		cfg.SystemPrompt = systemPrompt
+	}
+
+	// Save
+	if err := config.SaveConfig(cfg); err != nil {
+		tui.PrintError(fmt.Sprintf("Failed to save configuration: %v", err))
+		os.Exit(1)
+	}
+
+	tui.PrintSuccess("Configuration saved successfully!")
+}
+
