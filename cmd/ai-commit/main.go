@@ -54,6 +54,27 @@ func main() {
 		return
 	}
 
+	// 0.6 Check for first-time setup (missing API Key)
+	if cfg.APIKey == "" {
+		tui.PrintInfo("It looks like this is your first time running ai-commit (or your API key is missing).")
+		// Custom prompt for setup
+		choice := tui.PromptUser("Would you like to run the setup wizard now? [Y/n]", "Y")
+		choice = strings.ToLower(choice)
+		
+		if choice == "y" || choice == "yes" {
+			runConfigurationWizard(tui, cfg)
+			// Reload config after wizard completes to pick up new values
+			var err error
+			cfg, err = config.LoadConfig()
+			if err != nil {
+				tui.PrintError(fmt.Sprintf("Configuration reload error: %v", err))
+				os.Exit(1)
+			}
+		} else {
+			tui.PrintInfo("You can run 'ai-commit --configure' later to set up your API key.")
+		}
+	}
+
 	// Apply colors from config
 	tui.ApplyConfig(cfg.UIColors)
 
