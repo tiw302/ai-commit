@@ -24,6 +24,7 @@ type Config struct {
 	APIURL        string            `json:"api_url"`
 	APIKey        string            `json:"api_key"`
 	ModelName     string            `json:"model_name"`
+	SystemPrompt  string            `json:"system_prompt,omitempty"`
 	MaxDiffLength int               `json:"max_diff_length"`
 	ExcludeFiles  []string          `json:"exclude_files"`
 	UIColors      UIColors          `json:"ui_colors"`
