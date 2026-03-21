@@ -37,8 +37,9 @@ func GetStagedDiff(cfg *config.Config) (string, error) {
 	}
 
 	// Truncate diff if it's too long to save tokens and avoid API limits.
-	if len(diff) > cfg.MaxDiffLength {
-		diff = diff[:cfg.MaxDiffLength] + "\n\n(diff truncated for length...)"
+	runes := []rune(diff)
+	if len(runes) > cfg.MaxDiffLength {
+		diff = string(runes[:cfg.MaxDiffLength]) + "\n\n(diff truncated for length...)"
 	}
 
 	return diff, nil
