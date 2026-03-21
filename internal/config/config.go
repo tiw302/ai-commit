@@ -53,9 +53,11 @@ func LoadConfig() (*Config, error) {
 			Provider:      "openai",
 			APIURL:        "https://api.openai.com/v1/chat/completions",
 			ModelName:     "gpt-4o",
-			MaxDiffLength: 2000,
+			MaxDiffLength: 50000,
 			ExcludeFiles: []string{
 				"package-lock.json",
+				"yarn.lock",
+				"pnpm-lock.yaml",
 				"go.sum",
 				"*.svg",
 				"*.png",
