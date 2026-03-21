@@ -183,41 +183,36 @@ func runConfigurationWizard(tui *ui.UI, cfg *config.Config) {
 	fmt.Println()
 
 	// 1. Provider
-	provider := tui.PromptUser("Select AI Provider (openai, anthropic, gemini, ollama)", cfg.Provider)
-	if provider != "" {
-		cfg.Provider = provider
-	}
+	cfg.Provider = tui.PromptUser("Select AI Provider (openai, anthropic, gemini, ollama)", cfg.Provider)
 
 	// 2. API Key
 	// Show a masked version of the current key if it exists
 	currentKeyDisplay := "none"
-	if len(cfg.APIKey) > 4 {
+	if len(cfg.APIKey) > 8 {
 		currentKeyDisplay = "..." + cfg.APIKey[len(cfg.APIKey)-4:]
 	} else if len(cfg.APIKey) > 0 {
 		currentKeyDisplay = "***"
 	}
+	
 	apiKey := tui.PromptUser(fmt.Sprintf("Enter API Key (current: %s)", currentKeyDisplay), "")
 	if apiKey != "" {
 		cfg.APIKey = apiKey
 	}
+	// Note: If user presses Enter for API key and it was already set, we keep it.
+	// But PromptUser with empty default returns empty string if user presses Enter.
+	// So we need to handle "keep existing" manually if we don't pass the actual key as default.
+	// Passing actual key as default to PromptUser would show it in plain text, which is bad.
+	// So the previous logic `if apiKey != ""` was actually correct for the API Key specifically.
+	// I will revert to that logic for API Key only.
 
 	// 3. Model Name
-	modelName := tui.PromptUser("Enter Model Name", cfg.ModelName)
-	if modelName != "" {
-		cfg.ModelName = modelName
-	}
+	cfg.ModelName = tui.PromptUser("Enter Model Name", cfg.ModelName)
 
-	// 4. API URL (Optional, mostly for Ollama or custom endpoints)
-	apiURL := tui.PromptUser("Enter API URL (optional)", cfg.APIURL)
-	if apiURL != "" {
-		cfg.APIURL = apiURL
-	}
+	// 4. API URL (Optional)
+	cfg.APIURL = tui.PromptUser("Enter API URL (optional)", cfg.APIURL)
 
 	// 5. System Prompt (Optional)
-	systemPrompt := tui.PromptUser("Enter Global System Prompt (optional)", cfg.SystemPrompt)
-	if systemPrompt != "" {
-		cfg.SystemPrompt = systemPrompt
-	}
+	cfg.SystemPrompt = tui.PromptUser("Enter Global System Prompt (optional)", cfg.SystemPrompt)
 
 	// Save
 	if err := config.SaveConfig(cfg); err != nil {
