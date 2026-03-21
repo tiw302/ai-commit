@@ -51,15 +51,27 @@ func main() {
 	tui.ApplyConfig(cfg.UIColors)
 
 	// 2. Determine Prompt Mode
-	mode := cfg.DefaultMode
-	if *modeFlag != "" {
-		mode = *modeFlag
-	}
+	var prompt string
 
-	prompt, ok := cfg.Modes[mode]
-	if !ok {
-		tui.PrintError(fmt.Sprintf("Unknown mode '%s'. Check your config.json", mode))
-		os.Exit(1)
+	if *modeFlag != "" {
+		// CLI flag takes precedence
+		var ok bool
+		prompt, ok = cfg.Modes[*modeFlag]
+		if !ok {
+			tui.PrintError(fmt.Sprintf("Unknown mode '%s'. Check your config.json", *modeFlag))
+			os.Exit(1)
+		}
+	} else if cfg.SystemPrompt != "" {
+		// Use custom system prompt if defined in config
+		prompt = cfg.SystemPrompt
+	} else {
+		// Fallback to default mode
+		var ok bool
+		prompt, ok = cfg.Modes[cfg.DefaultMode]
+		if !ok {
+			tui.PrintError(fmt.Sprintf("Unknown mode '%s'. Check your config.json", cfg.DefaultMode))
+			os.Exit(1)
+		}
 	}
 
 	// Append user context if provided
