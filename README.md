@@ -106,14 +106,33 @@ The tool creates a config file at `~/.config/ai-commit/config.json`.
 - `-m "context"`: Give the AI a hint (e.g., `ai-commit -m "fix UI bug"`).
 - `--configure`: Run the interactive configuration wizard.
 - `--mode`: Change the style (e.g., `ai-commit --mode troll`).
+- `--install-hook`: Setup a git hook to run `ai-commit` automatically on `git commit`.
+- `--uninstall-hook`: Remove the git hook.
 - `-v, --version`: Show the version.
+
+## Git Hook Integration
+
+You can set up `ai-commit` to run automatically whenever you execute `git commit` (without the `-m` flag).
+
+1. **Install the hook:**
+   ```bash
+   ai-commit --install-hook
+   ```
+2. **Usage:**
+   Stage your changes (`git add .`) and then simply run:
+   ```bash
+   git commit
+   ```
+   `ai-commit` will be triggered to generate a message for you.
+
+*Note: If you provide a message manually (e.g., `git commit -m "my message"`), the hook will be skipped automatically.*
 
 ## Roadmap
 
 - [x] **Multi-backend support** (OpenAI, Ollama, Anthropic, Gemini)
 - [x] **Custom System Prompts** via config file
 - [x] **Interactive Configuration Wizard** (`--configure`)
-- [ ] **Git Hook Integration** (Run automatically on `git commit`)
+- [x] **Git Hook Integration** (Run automatically on `git commit`)
 
 ---
 

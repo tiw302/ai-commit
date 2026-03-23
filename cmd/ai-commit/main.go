@@ -21,7 +21,8 @@ func main() {
 		fmt.Printf("Examples:\n")
 		fmt.Printf("  ai-commit\n")
 		fmt.Printf("  ai-commit -m \"fix login bug\"\n")
-		fmt.Printf("  ai-commit --mode troll\n\n")
+		fmt.Printf("  ai-commit --mode troll\n")
+		fmt.Printf("  ai-commit --install-hook\n\n")
 		fmt.Printf("Flags:\n")
 		flag.PrintDefaults()
 	}
@@ -29,6 +30,9 @@ func main() {
 	versionFlag := flag.Bool("v", false, "Print version and exit")
 	versionFullFlag := flag.Bool("version", false, "Print version and exit")
 	configureFlag := flag.Bool("configure", false, "Run the interactive configuration wizard")
+	installHookFlag := flag.Bool("install-hook", false, "Install ai-commit as a git hook")
+	uninstallHookFlag := flag.Bool("uninstall-hook", false, "Uninstall the ai-commit git hook")
+	hookModeFlag := flag.String("hook", "", "Run in git hook mode (path to commit message file)")
 	modeFlag := flag.String("mode", "", "The mode for the commit message (e.g., pro, troll)")
 	contextFlag := flag.String("m", "", "Short user context/instruction for the commit")
 	flag.Parse()
@@ -40,6 +44,39 @@ func main() {
 	}
 
 	tui := ui.NewUI()
+
+	// 0.1 Check for hook installation flags
+	if *installHookFlag {
+		if err := git.InstallHook(); err != nil {
+			tui.PrintError(fmt.Sprintf("Failed to install hook: %v", err))
+			os.Exit(1)
+		}
+		tui.PrintSuccess("Git hook installed successfully!")
+		return
+	}
+
+	if *uninstallHookFlag {
+		if err := git.UninstallHook(); err != nil {
+			tui.PrintError(fmt.Sprintf("Failed to uninstall hook: %v", err))
+			os.Exit(1)
+		}
+		tui.PrintSuccess("Git hook uninstalled successfully!")
+		return
+	}
+
+	// 0.2 Check if we should skip in hook mode
+	if *hookModeFlag != "" {
+		// If there are other arguments, check the source (second arg to prepare-commit-msg)
+		args := flag.Args()
+		if len(args) > 0 {
+			source := args[0]
+			// sources: message, template, merge, squash, commit
+			// We skip if a message was already provided via -m, -F, or it's an amendment/merge
+			if source == "message" || source == "template" || source == "merge" || source == "squash" || source == "commit" {
+				return
+			}
+		}
+	}
 
 	// 1. Load Configuration
 	cfg, err := config.LoadConfig()
@@ -141,6 +178,13 @@ func main() {
 		choice := tui.AskForConfirmation()
 		switch choice {
 		case "y", "yes":
+			if *hookModeFlag != "" {
+				if err := os.WriteFile(*hookModeFlag, []byte(commitMessage), 0644); err != nil {
+					tui.PrintError(fmt.Sprintf("Failed to write commit message: %v", err))
+					os.Exit(1)
+				}
+				return
+			}
 			if err := git.Commit(commitMessage); err != nil {
 				tui.PrintError(fmt.Sprintf("Failed to commit: %v", err))
 				os.Exit(1)
@@ -155,6 +199,13 @@ func main() {
 			}
 			if editedMsg == "" {
 				tui.PrintInfo("Commit message is empty. Cancelled.")
+				return
+			}
+			if *hookModeFlag != "" {
+				if err := os.WriteFile(*hookModeFlag, []byte(editedMsg), 0644); err != nil {
+					tui.PrintError(fmt.Sprintf("Failed to write commit message: %v", err))
+					os.Exit(1)
+				}
 				return
 			}
 			if err := git.Commit(editedMsg); err != nil {

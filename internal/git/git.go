@@ -2,6 +2,7 @@ package git
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -50,5 +51,49 @@ func Commit(message string) error {
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to execute git commit: %w", err)
 	}
+	return nil
+}
+
+// InstallHook sets up a git hook to run ai-commit automatically on commit.
+func InstallHook() error {
+	if !IsRepo() {
+		return fmt.Errorf("not a git repository")
+	}
+
+	hookPath := ".git/hooks/prepare-commit-msg"
+	hookContent := `#!/bin/sh
+# ai-commit hook
+# This hook was installed by ai-commit
+
+# Check if we should skip the hook (e.g., if AI_COMMIT_SKIP=1)
+if [ "$AI_COMMIT_SKIP" = "1" ]; then
+    exit 0
+fi
+
+# Run ai-commit in hook mode
+# Pass the commit message file path to ai-commit
+exec < /dev/tty
+ai-commit --hook "$1" "$2" "$3"
+`
+
+	err := os.WriteFile(hookPath, []byte(hookContent), 0755)
+	if err != nil {
+		return fmt.Errorf("failed to write hook file: %w", err)
+	}
+
+	return nil
+}
+
+// UninstallHook removes the git hook.
+func UninstallHook() error {
+	if !IsRepo() {
+		return fmt.Errorf("not a git repository")
+	}
+
+	hookPath := ".git/hooks/prepare-commit-msg"
+	if err := os.Remove(hookPath); err != nil {
+		return fmt.Errorf("failed to remove hook file: %w", err)
+	}
+
 	return nil
 }
