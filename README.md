@@ -133,6 +133,12 @@ You can set up `ai-commit` to run automatically whenever you execute `git commit
 - [x] **Custom System Prompts** via config file
 - [x] **Interactive Configuration Wizard** (`--configure`)
 - [x] **Git Hook Integration** (Run automatically on `git commit`)
+- [ ] **Project-specific Configuration** (`.ai-commit.json` in repository root)
+- [ ] **Conventional Commits** (Better support and automatic scope detection)
+- [ ] **Multi-language Support** (Generate commit messages in your preferred language)
+- [ ] **Dry Run Mode** (`--dry-run` flag)
+- [ ] **Shell Autocompletion** (Bash, Zsh, Fish)
+- [ ] **Enhanced TUI** (Polished UI experience using `bubbletea`)
 
 ---
 
