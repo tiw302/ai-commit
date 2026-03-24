@@ -87,9 +87,8 @@ func LoadConfig() (*Config, error) {
 		return nil, fmt.Errorf("failed to parse config JSON: %w", err)
 	}
 
-	// Check for project-specific config in the current directory
-	projectConfigPath := ".ai-commit.json"
-	if _, err := os.Stat(projectConfigPath); err == nil {
+	// Check for project-specific config by walking up the directory tree
+	if projectConfigPath, err := findProjectConfig(); err == nil && projectConfigPath != "" {
 		projectFile, err := os.ReadFile(projectConfigPath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read project config file: %w", err)
@@ -104,6 +103,30 @@ func LoadConfig() (*Config, error) {
 	}
 
 	return &cfg, nil
+}
+
+// findProjectConfig searches for .ai-commit.json starting from the current directory
+// and walking up to the root. Returns the absolute path if found.
+func findProjectConfig() (string, error) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	for {
+		path := filepath.Join(dir, ".ai-commit.json")
+		if _, err := os.Stat(path); err == nil {
+			return path, nil
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			// Reached root
+			break
+		}
+		dir = parent
+	}
+	return "", nil
 }
 
 // SaveConfig writes the configuration to the user's config directory.

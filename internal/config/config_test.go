@@ -94,3 +94,53 @@ func TestLoadConfig_ProjectSpecific(t *testing.T) {
 		t.Errorf("expected max_diff_length to be 500, got %d", cfg.MaxDiffLength)
 	}
 }
+
+func TestLoadConfig_ProjectSpecific_Subdir(t *testing.T) {
+	// 1. Setup User Config Directory
+	userConfigDir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", userConfigDir)
+	
+	// Create user config
+	appDir := filepath.Join(userConfigDir, "ai-commit")
+	if err := os.MkdirAll(appDir, 0755); err != nil {
+		t.Fatalf("failed to create app dir: %v", err)
+	}
+	defaultConfig := []byte(`{"model_name": "gpt-3.5-turbo"}`)
+	if err := os.WriteFile(filepath.Join(appDir, "config.json"), defaultConfig, 0644); err != nil {
+		t.Fatalf("failed to write user config: %v", err)
+	}
+
+	// 2. Setup Project Directory Structure
+	projectRoot := t.TempDir()
+	projectSubdir := filepath.Join(projectRoot, "cmd", "subdir")
+	if err := os.MkdirAll(projectSubdir, 0755); err != nil {
+		t.Fatalf("failed to create project subdir: %v", err)
+	}
+
+	// Write config to ROOT
+	projectConfig := []byte(`{"model_name": "gpt-4-turbo-preview"}`)
+	if err := os.WriteFile(filepath.Join(projectRoot, ".ai-commit.json"), projectConfig, 0644); err != nil {
+		t.Fatalf("failed to write project config: %v", err)
+	}
+
+	// 3. Change working directory to SUBDIR
+	originalWd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get current wd: %v", err)
+	}
+	defer os.Chdir(originalWd)
+	if err := os.Chdir(projectSubdir); err != nil {
+		t.Fatalf("failed to chdir: %v", err)
+	}
+
+	// 4. Load Config
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("LoadConfig failed: %v", err)
+	}
+
+	// 5. Assertions
+	if cfg.ModelName != "gpt-4-turbo-preview" {
+		t.Errorf("expected model_name to be 'gpt-4-turbo-preview' (from parent), got '%s'", cfg.ModelName)
+	}
+}
