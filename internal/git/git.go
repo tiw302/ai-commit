@@ -45,6 +45,77 @@ func GetStagedDiff(cfg *config.Config) (string, error) {
 
 	return diff, nil
 }
+
+// GetStagedFiles returns a list of files that are currently staged.
+func GetStagedFiles() ([]string, error) {
+	if !IsRepo() {
+		return nil, fmt.Errorf("not a git repository")
+	}
+
+	cmd := exec.Command("git", "diff", "--name-only", "--staged")
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get staged files: %w", err)
+	}
+
+	output := strings.TrimSpace(string(out))
+	if output == "" {
+		return []string{}, nil
+	}
+
+	return strings.Split(output, "\n"), nil
+}
+
+// DetectScope attempts to infer the Conventional Commit scope based on the file paths.
+func DetectScope(files []string) string {
+	scopes := make(map[string]int)
+
+	for _, file := range files {
+		// Normalize path separators
+		file = strings.ReplaceAll(file, "\\", "/")
+
+		if strings.HasPrefix(file, "internal/ui/") || strings.HasPrefix(file, "ui/") {
+			scopes["ui"]++
+		} else if strings.HasPrefix(file, "internal/api/") || strings.HasPrefix(file, "api/") {
+			scopes["api"]++
+		} else if strings.HasPrefix(file, "internal/config/") || strings.HasPrefix(file, "config/") {
+			scopes["config"]++
+		} else if strings.HasPrefix(file, "cmd/") {
+			scopes["cli"]++
+		} else if strings.HasSuffix(file, "_test.go") || strings.HasPrefix(file, "test/") {
+			scopes["test"]++
+		} else if strings.HasSuffix(file, ".md") {
+			scopes["docs"]++
+		} else if strings.HasSuffix(file, "go.mod") || strings.HasSuffix(file, "go.sum") || strings.HasSuffix(file, "Makefile") {
+			scopes["build"]++
+		} else if strings.HasPrefix(file, ".github/") {
+			scopes["ci"]++
+		} else {
+			// Try to get the top-level directory as scope if it's not "internal" or "pkg"
+			parts := strings.Split(file, "/")
+			if len(parts) > 1 && parts[0] != "internal" && parts[0] != "pkg" && parts[0] != "src" {
+				scopes[parts[0]]++
+			}
+		}
+	}
+
+	if len(scopes) == 0 {
+		return ""
+	}
+
+	// Find the most frequent scope
+	var maxScore int
+	var bestScope string
+	for scope, score := range scopes {
+		if score > maxScore {
+			maxScore = score
+			bestScope = scope
+		}
+	}
+
+	return bestScope
+}
+
 // Commit executes the 'git commit -m' command with the provided commit message.
 func Commit(message string) error {
 	cmd := exec.Command("git", "commit", "-m", message)

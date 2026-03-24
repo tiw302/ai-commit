@@ -65,7 +65,7 @@ func LoadConfig() (*Config, error) {
 				"*.pdf",
 			},
 			Modes: map[string]string{
-				"pro":   "You are a professional software engineer. Generate a concise commit message based on the diff below.",
+				"pro":   "You are a professional software engineer. Generate a concise commit message using the Conventional Commits specification (e.g., 'feat(ui): add button'). Base the scope on the modified files.",
 				"troll": "You are a sarcastic dev. Roast the code and generate a funny commit message.",
 			},
 			DefaultMode: "pro",

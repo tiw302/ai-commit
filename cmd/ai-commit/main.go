@@ -155,6 +155,18 @@ func main() {
 		os.Exit(1)
 	}
 
+	// 3.1 Automatic Scope Detection
+	files, err := git.GetStagedFiles()
+	if err == nil && len(files) > 0 {
+		scope := git.DetectScope(files)
+		if scope != "" {
+			prompt = fmt.Sprintf("%s\n\nSuggested Scope: %s", prompt, scope)
+		}
+		// Also provide file names for better context
+		fileList := strings.Join(files, "\n")
+		prompt = fmt.Sprintf("%s\n\nFiles Modified:\n%s", prompt, fileList)
+	}
+
 	// 4. Initialize AI Provider
 	provider, err := api.NewProvider(cfg)
 	if err != nil {
