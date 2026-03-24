@@ -109,6 +109,10 @@ func main() {
 			}
 		} else {
 			tui.PrintInfo("You can run 'ai-commit --configure' later to set up your API key.")
+			if cfg.Provider != "ollama" {
+				tui.PrintInfo(fmt.Sprintf("No API key configured for %s. Aborting.", cfg.Provider))
+				os.Exit(0)
+			}
 		}
 	}
 
