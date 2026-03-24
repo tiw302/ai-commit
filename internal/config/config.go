@@ -87,6 +87,18 @@ func LoadConfig() (*Config, error) {
 		return nil, fmt.Errorf("failed to parse config JSON: %w", err)
 	}
 
+	// Check for project-specific config in the current directory
+	projectConfigPath := ".ai-commit.json"
+	if _, err := os.Stat(projectConfigPath); err == nil {
+		projectFile, err := os.ReadFile(projectConfigPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read project config file: %w", err)
+		}
+		if err := json.Unmarshal(projectFile, &cfg); err != nil {
+			return nil, fmt.Errorf("failed to parse project config JSON: %w", err)
+		}
+	}
+
 	if envKey := os.Getenv("AI_COMMIT_API_KEY"); envKey != "" {
 		cfg.APIKey = envKey
 	}
