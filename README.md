@@ -92,6 +92,25 @@ The tool creates a config file at `~/.config/ai-commit/config.json`.
 }
 ```
 
+### Project-specific Configuration
+
+You can place a `.ai-commit.json` file in your project root to override global settings. This is useful for team-wide configuration (e.g., specific models or exclude patterns).
+
+**Example `.ai-commit.json`:**
+```json
+{
+  "model_name": "gpt-4o",
+  "max_diff_length": 50000,
+  "exclude_files": [
+    "package-lock.json",
+    "yarn.lock",
+    "go.sum"
+  ],
+  "default_mode": "pro"
+}
+```
+*Note: Sensitive keys (like `api_key`) should generally be kept in your global user config or environment variables, not committed to the repository.*
+
 ## Usage
 
 1. Stage your changes: `git add .`
@@ -133,7 +152,7 @@ You can set up `ai-commit` to run automatically whenever you execute `git commit
 - [x] **Custom System Prompts** via config file
 - [x] **Interactive Configuration Wizard** (`--configure`)
 - [x] **Git Hook Integration** (Run automatically on `git commit`)
-- [ ] **Project-specific Configuration** (`.ai-commit.json` in repository root)
+- [x] **Project-specific Configuration** (`.ai-commit.json` in repository root)
 - [ ] **Conventional Commits** (Better support and automatic scope detection)
 - [ ] **Multi-language Support** (Generate commit messages in your preferred language)
 - [ ] **Dry Run Mode** (`--dry-run` flag)
