@@ -74,15 +74,8 @@ func DetectScope(files []string) string {
 		// Normalize path separators
 		file = strings.ReplaceAll(file, "\\", "/")
 
-		if strings.HasPrefix(file, "internal/ui/") || strings.HasPrefix(file, "ui/") {
-			scopes["ui"]++
-		} else if strings.HasPrefix(file, "internal/api/") || strings.HasPrefix(file, "api/") {
-			scopes["api"]++
-		} else if strings.HasPrefix(file, "internal/config/") || strings.HasPrefix(file, "config/") {
-			scopes["config"]++
-		} else if strings.HasPrefix(file, "cmd/") {
-			scopes["cli"]++
-		} else if strings.HasSuffix(file, "_test.go") || strings.HasPrefix(file, "test/") {
+		// Prioritize specific file types/suffixes
+		if strings.HasSuffix(file, "_test.go") || strings.HasPrefix(file, "test/") {
 			scopes["test"]++
 		} else if strings.HasSuffix(file, ".md") {
 			scopes["docs"]++
@@ -90,6 +83,14 @@ func DetectScope(files []string) string {
 			scopes["build"]++
 		} else if strings.HasPrefix(file, ".github/") {
 			scopes["ci"]++
+		} else if strings.HasPrefix(file, "internal/ui/") || strings.HasPrefix(file, "ui/") {
+			scopes["ui"]++
+		} else if strings.HasPrefix(file, "internal/api/") || strings.HasPrefix(file, "api/") {
+			scopes["api"]++
+		} else if strings.HasPrefix(file, "internal/config/") || strings.HasPrefix(file, "config/") {
+			scopes["config"]++
+		} else if strings.HasPrefix(file, "cmd/") {
+			scopes["cli"]++
 		} else {
 			// Try to get the top-level directory as scope if it's not "internal" or "pkg"
 			parts := strings.Split(file, "/")
