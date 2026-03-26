@@ -30,6 +30,7 @@ type Config struct {
 	UIColors      UIColors          `json:"ui_colors"`
 	Modes         map[string]string `json:"modes"`
 	DefaultMode   string            `json:"default_mode"`
+	Language      string            `json:"language,omitempty"`
 }
 
 // LoadConfig reads the configuration from the user's config directory.
@@ -69,6 +70,7 @@ func LoadConfig() (*Config, error) {
 				"troll": "You are a sarcastic dev. Roast the code and generate a funny commit message.",
 			},
 			DefaultMode: "pro",
+			Language:    "en",
 		}
 
 		data, _ := json.MarshalIndent(defaultCfg, "", "  ")
