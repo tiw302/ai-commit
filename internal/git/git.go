@@ -37,10 +37,10 @@ func GetStagedDiff(cfg *config.Config) (string, error) {
 		return "", fmt.Errorf("no staged changes found; use 'git add' to stage files")
 	}
 
-	// Truncate diff if it's too long to save tokens and avoid API limits.
+	// Truncate diff if it exceeds max length to optimize token usage.
 	runes := []rune(diff)
 	if len(runes) > cfg.MaxDiffLength {
-		diff = string(runes[:cfg.MaxDiffLength]) + "\n\n(diff truncated for length...)"
+		diff = string(runes[:cfg.MaxDiffLength]) + "\n\n(diff truncated...)"
 	}
 
 	return diff, nil
@@ -66,12 +66,11 @@ func GetStagedFiles() ([]string, error) {
 	return strings.Split(output, "\n"), nil
 }
 
-// DetectScope attempts to infer the Conventional Commit scope based on the file paths.
+// DetectScope infers Conventional Commit scope from file paths.
 func DetectScope(files []string) string {
 	scopes := make(map[string]int)
 
 	for _, file := range files {
-		// Normalize path separators
 		file = strings.ReplaceAll(file, "\\", "/")
 
 		// Prioritize specific file types/suffixes
@@ -134,16 +133,14 @@ func InstallHook() error {
 
 	hookPath := ".git/hooks/prepare-commit-msg"
 	hookContent := `#!/bin/sh
-# ai-commit hook
-# This hook was installed by ai-commit
+# ai-commit hook configuration
+# Installed by ai-commit
 
-# Check if we should skip the hook (e.g., if AI_COMMIT_SKIP=1)
 if [ "$AI_COMMIT_SKIP" = "1" ]; then
     exit 0
 fi
 
-# Run ai-commit in hook mode
-# Pass the commit message file path to ai-commit
+# Pass commit message file path to ai-commit
 exec < /dev/tty
 ai-commit --hook "$1" "$2" "$3"
 `

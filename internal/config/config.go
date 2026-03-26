@@ -10,7 +10,7 @@ import (
 // Version is the current version of the ai-commit tool.
 const Version = "0.1.0"
 
-// UIColors defines the hex or ANSI color codes for terminal output styling.
+// UIColors defines terminal styling for output.
 type UIColors struct {
 	Success string `json:"success"`
 	Error   string `json:"error"`
@@ -18,7 +18,7 @@ type UIColors struct {
 	Info    string `json:"info"`
 }
 
-// Config represents the main configuration structure for the ai-commit tool.
+// Config represents the application settings.
 type Config struct {
 	Provider      string            `json:"provider"`
 	APIURL        string            `json:"api_url"`
@@ -107,8 +107,7 @@ func LoadConfig() (*Config, error) {
 	return &cfg, nil
 }
 
-// findProjectConfig searches for .ai-commit.json starting from the current directory
-// and walking up to the root. Returns the absolute path if found.
+// findProjectConfig searches for .ai-commit.json in current and parent directories.
 func findProjectConfig() (string, error) {
 	dir, err := os.Getwd()
 	if err != nil {
