@@ -35,6 +35,8 @@ func main() {
 	hookModeFlag := flag.String("hook", "", "Run in git hook mode (path to commit message file)")
 	modeFlag := flag.String("mode", "", "The mode for the commit message (e.g., pro, troll)")
 	contextFlag := flag.String("m", "", "Short user context/instruction for the commit")
+	dryRunFlag := flag.Bool("dry-run", false, "Print the commit message without committing")
+	langFlag := flag.String("lang", "", "The language for the commit message (e.g., en, th, jp)")
 	flag.Parse()
 
 	// 0. Check for version flag
@@ -148,6 +150,15 @@ func main() {
 		prompt = fmt.Sprintf("%s\n\nUser Context: %s", prompt, *contextFlag)
 	}
 
+	// 2.1 Determine Language
+	language := cfg.Language
+	if *langFlag != "" {
+		language = *langFlag
+	}
+	if language != "" && language != "en" {
+		prompt = fmt.Sprintf("%s\n\nIMPORTANT: Generate the commit message in the following language: %s", prompt, language)
+	}
+
 	// 3. Get Staged Diff
 	diff, err := git.GetStagedDiff(cfg)
 	if err != nil {
@@ -189,6 +200,11 @@ func main() {
 
 		commitMessage = strings.TrimSpace(msg)
 		fmt.Printf("\n\n%sProposed Commit Message:%s\n%s\n", tui.Info, "\033[0m", commitMessage)
+
+		if *dryRunFlag {
+			tui.PrintInfo("Dry run mode enabled. Skipping commit.")
+			return
+		}
 
 		// 6. Interactive Prompt
 		choice := tui.AskForConfirmation()
@@ -274,6 +290,9 @@ func runConfigurationWizard(tui *ui.UI, cfg *config.Config) {
 
 	// 5. System Prompt (Optional)
 	cfg.SystemPrompt = tui.PromptUser("Enter Global System Prompt (optional)", cfg.SystemPrompt)
+
+	// 6. Language
+	cfg.Language = tui.PromptUser("Enter Preferred Language (e.g., en, th, jp)", cfg.Language)
 
 	// Save
 	if err := config.SaveConfig(cfg); err != nil {
