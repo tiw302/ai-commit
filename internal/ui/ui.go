@@ -11,7 +11,7 @@ import (
 	"github.com/tiw302/ai-commit/internal/config"
 )
 
-// UI handles terminal coloring and styling for user feedback.
+// UI handles terminal styling.
 type UI struct {
 	Success string
 	Error   string
@@ -20,32 +20,32 @@ type UI struct {
 	Prompt  string
 }
 
-// NewUI initializes a UI instance with ANSI color codes.
+// NewUI initializes UI with default colors.
 func NewUI() *UI {
 	return &UI{
-		Success: "\033[32m", // Green
-		Error:   "\033[31m", // Red
-		Warning: "\033[33m", // Yellow
-		Info:    "\033[34m", // Blue
-		Prompt:  "\033[36m", // Cyan
+		Success: "\033[32m",
+		Error:   "\033[31m",
+		Warning: "\033[33m",
+		Info:    "\033[34m",
+		Prompt:  "\033[36m",
 	}
 }
-// PrintSuccess displays a success message with green color.
+// PrintSuccess displays a success message.
 func (u *UI) PrintSuccess(msg string) {
 	fmt.Printf("%s✔ %s\033[0m\n", u.Success, msg)
 }
 
-// PrintError displays an error message with red color.
+// PrintError displays an error message.
 func (u *UI) PrintError(msg string) {
 	fmt.Printf("%s✖ Error: %s\033[0m\n", u.Error, msg)
 }
 
-// PrintInfo displays an info message with blue color.
+// PrintInfo displays an info message.
 func (u *UI) PrintInfo(msg string) {
 	fmt.Printf("%sℹ %s\033[0m\n", u.Info, msg)
 }
 
-// ApplyConfig updates the UI colors based on the user's configuration.
+// ApplyConfig updates colors from configuration.
 func (u *UI) ApplyConfig(cfgColors config.UIColors) {
 	if cfgColors.Success != "" {
 		u.Success = cfgColors.Success
@@ -61,8 +61,7 @@ func (u *UI) ApplyConfig(cfgColors config.UIColors) {
 	}
 }
 
-// LoadingSpinner creates an animated spinner while a background task is running.
-// It stops once the stopChan receives a signal.
+// LoadingSpinner animates a loading state in the terminal.
 func LoadingSpinner(stopChan chan bool) {
 	spinner := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 	i := 0
@@ -79,8 +78,7 @@ func LoadingSpinner(stopChan chan bool) {
 	}
 }
 
-// PromptUser displays a prompt and reads user input.
-// If defaultValue is provided, it is shown in brackets and used if the user just presses Enter.
+// PromptUser displays a prompt and reads input.
 func (u *UI) PromptUser(label string, defaultValue string) string {
 	var promptMsg string
 	if defaultValue != "" {
@@ -100,15 +98,14 @@ func (u *UI) PromptUser(label string, defaultValue string) string {
 	return input
 }
 
-// AskForConfirmation prompts the user for the next action.
+// AskForConfirmation prompts for the next action.
 func (u *UI) AskForConfirmation() string {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Printf("\n%s? Accept this commit? [y]es / [n]o / [e]dit / [r]egenerate: \033[0m", u.Prompt)
 	input, _ := reader.ReadString('\n')
 	return strings.ToLower(strings.TrimSpace(input))
 }
-// OpenInEditor opens the generated message in the user's default system editor (e.g., vim, nano).
-// It returns the updated message after the user saves and closes the editor.
+// OpenInEditor opens the message in the system's default editor.
 func OpenInEditor(initialMessage string) (string, error) {
 	tmpFile, err := os.CreateTemp("", "ai-commit-*.txt")
 	if err != nil {
