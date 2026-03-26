@@ -38,15 +38,13 @@ type Message struct {
 	Content string `json:"content"`
 }
 
-// --- OpenAI Provider ---
-
-// OpenAIRequest represents the payload structure for Chat Completion APIs.
+// OpenAIRequest represents the payload for Chat Completion APIs.
 type OpenAIRequest struct {
 	Model    string    `json:"model"`
 	Messages []Message `json:"messages"`
 }
 
-// OpenAIResponse represents the structure of the API's JSON response.
+// OpenAIResponse represents the structure of the API JSON response.
 type OpenAIResponse struct {
 	Choices []struct {
 		Message Message `json:"message"`
@@ -109,9 +107,7 @@ func (p *OpenAIProvider) GenerateCommitMessage(prompt, diff string) (string, err
 	return aiResp.Choices[0].Message.Content, nil
 }
 
-// --- Ollama Provider ---
-
-// OllamaRequest represents the request payload for Ollama's Chat API.
+// OllamaRequest represents the request for Ollama's Chat API.
 type OllamaRequest struct {
 	Model    string    `json:"model"`
 	Messages []Message `json:"messages"`
@@ -178,9 +174,7 @@ func (p *OllamaProvider) GenerateCommitMessage(prompt, diff string) (string, err
 	return ollamaResp.Message.Content, nil
 }
 
-// --- Anthropic Provider ---
-
-// AnthropicRequest represents the request payload for Anthropic's Messages API.
+// AnthropicRequest represents the request for Anthropic Messages API.
 type AnthropicRequest struct {
 	Model     string    `json:"model"`
 	MaxTokens int       `json:"max_tokens"`
@@ -254,10 +248,7 @@ func (p *AnthropicProvider) GenerateCommitMessage(prompt, diff string) (string, 
 	return anthroResp.Content[0].Text, nil
 }
 
-// --- Gemini Provider ---
-
-// GeminiRequest represents the structure for Google's Generative Language API.
-// It supports system instructions and content parts.
+// GeminiRequest represents the Google Generative Language API structure.
 type GeminiRequest struct {
 	Contents          []GeminiContent `json:"contents"`
 	SystemInstruction *GeminiContent  `json:"system_instruction,omitempty"`
