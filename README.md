@@ -123,6 +123,8 @@ You can place a `.ai-commit.json` file in your project root to override global s
 ### CLI Flags
 
 - `-m "context"`: Give the AI a hint (e.g., `ai-commit -m "fix UI bug"`).
+- `--dry-run`: Print the commit message without committing.
+- `--lang "th"`: The language for the commit message (e.g., en, th, jp).
 - `--configure`: Run the interactive configuration wizard.
 - `--mode`: Change the style (e.g., `ai-commit --mode troll`).
 - `--install-hook`: Setup a git hook to run `ai-commit` automatically on `git commit`.
@@ -154,8 +156,8 @@ You can set up `ai-commit` to run automatically whenever you execute `git commit
 - [x] **Git Hook Integration** (Run automatically on `git commit`)
 - [x] **Project-specific Configuration** (`.ai-commit.json` in repository root)
 - [x] **Conventional Commits** (Better support and automatic scope detection)
-- [ ] **Multi-language Support** (Generate commit messages in your preferred language)
-- [ ] **Dry Run Mode** (`--dry-run` flag)
+- [x] **Multi-language Support** (Generate commit messages in your preferred language)
+- [x] **Dry Run Mode** (`--dry-run` flag)
 - [ ] **Shell Autocompletion** (Bash, Zsh, Fish)
 - [ ] **Enhanced TUI** (Polished UI experience using `bubbletea`)
 
