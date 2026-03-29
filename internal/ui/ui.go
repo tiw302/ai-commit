@@ -11,7 +11,7 @@ import (
 	"github.com/tiw302/ai-commit/internal/config"
 )
 
-// UI handles terminal styling.
+// TUI state
 type UI struct {
 	Success string
 	Error   string
@@ -20,7 +20,7 @@ type UI struct {
 	Prompt  string
 }
 
-// NewUI initializes UI with default colors.
+// init UI with colors
 func NewUI() *UI {
 	return &UI{
 		Success: "\033[32m",
@@ -30,114 +30,76 @@ func NewUI() *UI {
 		Prompt:  "\033[36m",
 	}
 }
-// PrintSuccess displays a success message.
-func (u *UI) PrintSuccess(msg string) {
-	fmt.Printf("%s✔ %s\033[0m\n", u.Success, msg)
+
+// helper prints
+func (u *UI) PrintSuccess(msg string) { fmt.Printf("%s✔ %s\033[0m\n", u.Success, msg) }
+func (u *UI) PrintError(msg string)   { fmt.Printf("%s✖ error: %s\033[0m\n", u.Error, msg) }
+func (u *UI) PrintInfo(msg string)    { fmt.Printf("%sℹ %s\033[0m\n", u.Info, msg) }
+
+// sync config colors
+func (u *UI) ApplyConfig(cfg config.UIColors) {
+	if cfg.Success != "" { u.Success = cfg.Success }
+	if cfg.Error != ""   { u.Error = cfg.Error }
+	if cfg.Warning != "" { u.Warning = cfg.Warning }
+	if cfg.Info != ""    { u.Info = cfg.Info }
 }
 
-// PrintError displays an error message.
-func (u *UI) PrintError(msg string) {
-	fmt.Printf("%s✖ Error: %s\033[0m\n", u.Error, msg)
-}
-
-// PrintInfo displays an info message.
-func (u *UI) PrintInfo(msg string) {
-	fmt.Printf("%sℹ %s\033[0m\n", u.Info, msg)
-}
-
-// ApplyConfig updates colors from configuration.
-func (u *UI) ApplyConfig(cfgColors config.UIColors) {
-	if cfgColors.Success != "" {
-		u.Success = cfgColors.Success
-	}
-	if cfgColors.Error != "" {
-		u.Error = cfgColors.Error
-	}
-	if cfgColors.Warning != "" {
-		u.Warning = cfgColors.Warning
-	}
-	if cfgColors.Info != "" {
-		u.Info = cfgColors.Info
-	}
-}
-
-// LoadingSpinner animates a loading state in the terminal.
+// loading spinner
 func LoadingSpinner(stopChan chan bool) {
 	spinner := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 	i := 0
 	for {
 		select {
 		case <-stopChan:
-			fmt.Print("\r") // Clear the line when the task is done.
+			fmt.Print("\r")
 			return
 		default:
-			fmt.Printf("\r\033[36m%s\033[0m AI is reading your code and generating a commit message...", spinner[i])
+			fmt.Printf("\r\033[36m%s\033[0m generating...", spinner[i])
 			i = (i + 1) % len(spinner)
 			time.Sleep(100 * time.Millisecond)
 		}
 	}
 }
 
-// PromptUser displays a prompt and reads input.
+// read user input
 func (u *UI) PromptUser(label string, defaultValue string) string {
-	var promptMsg string
+	msg := fmt.Sprintf("%s%s: \033[0m", u.Prompt, label)
 	if defaultValue != "" {
-		promptMsg = fmt.Sprintf("%s%s [%s]: \033[0m", u.Prompt, label, defaultValue)
-	} else {
-		promptMsg = fmt.Sprintf("%s%s: \033[0m", u.Prompt, label)
+		msg = fmt.Sprintf("%s%s [%s]: \033[0m", u.Prompt, label, defaultValue)
 	}
-	fmt.Print(promptMsg)
+	fmt.Print(msg)
 
 	reader := bufio.NewReader(os.Stdin)
 	input, _ := reader.ReadString('\n')
 	input = strings.TrimSpace(input)
 
-	if input == "" {
-		return defaultValue
-	}
+	if input == "" { return defaultValue }
 	return input
 }
 
-// AskForConfirmation prompts for the next action.
+// ask for confirmation
 func (u *UI) AskForConfirmation() string {
+	fmt.Printf("\n%s? commit? [y]es / [n]o / [e]dit / [r]egenerate: \033[0m", u.Prompt)
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Printf("\n%s? Accept this commit? [y]es / [n]o / [e]dit / [r]egenerate: \033[0m", u.Prompt)
 	input, _ := reader.ReadString('\n')
 	return strings.ToLower(strings.TrimSpace(input))
 }
-// OpenInEditor opens the message in the system's default editor.
-func OpenInEditor(initialMessage string) (string, error) {
-	tmpFile, err := os.CreateTemp("", "ai-commit-*.txt")
-	if err != nil {
-		return "", fmt.Errorf("failed to create temp file: %w", err)
-	}
-	defer os.Remove(tmpFile.Name())
 
-	if _, err := tmpFile.WriteString(initialMessage); err != nil {
-		return "", fmt.Errorf("failed to write to temp file: %w", err)
-	}
-	tmpFile.Close()
+// open editor for message
+func OpenInEditor(msg string) (string, error) {
+	tmp, _ := os.CreateTemp("", "ai-commit-*.txt")
+	defer os.Remove(tmp.Name())
 
-	// Check for $EDITOR environment variable, fallback to 'vim' or 'nano'.
+	tmp.WriteString(msg)
+	tmp.Close()
+
 	editor := os.Getenv("EDITOR")
-	if editor == "" {
-		editor = "vim"
-	}
+	if editor == "" { editor = "vim" }
 
-	cmd := exec.Command(editor, tmpFile.Name())
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd := exec.Command(editor, tmp.Name())
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	cmd.Run()
 
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("failed to open editor (%s): %w", editor, err)
-	}
-
-	// Read the content after user editing.
-	updatedContent, err := os.ReadFile(tmpFile.Name())
-	if err != nil {
-		return "", fmt.Errorf("failed to read updated commit message: %w", err)
-	}
-
-	return strings.TrimSpace(string(updatedContent)), nil
+	updated, _ := os.ReadFile(tmp.Name())
+	return strings.TrimSpace(string(updated)), nil
 }

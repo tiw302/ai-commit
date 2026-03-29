@@ -9,16 +9,16 @@ import (
 	"github.com/tiw302/ai-commit/internal/config"
 )
 
-// IsRepo checks if the current directory is a git repository.
+// check if git repo
 func IsRepo() bool {
 	cmd := exec.Command("git", "rev-parse", "--is-inside-work-tree")
 	return cmd.Run() == nil
 }
 
-// GetStagedDiff retrieves the diff of staged files.
+// get staged diff
 func GetStagedDiff(cfg *config.Config) (string, error) {
 	if !IsRepo() {
-		return "", fmt.Errorf("not a git repository (or any of the parent directories)")
+		return "", fmt.Errorf("not a git repo")
 	}
 
 	var excludePatterns []string
@@ -29,15 +29,15 @@ func GetStagedDiff(cfg *config.Config) (string, error) {
 	args := append([]string{"diff", "--staged", "--"}, excludePatterns...)
 	out, err := exec.Command("git", args...).Output()
 	if err != nil {
-		return "", fmt.Errorf("failed to get staged diff: %w", err)
+		return "", err
 	}
 
 	diff := string(out)
 	if strings.TrimSpace(diff) == "" {
-		return "", fmt.Errorf("no staged changes found; use 'git add' to stage files")
+		return "", fmt.Errorf("no staged changes")
 	}
 
-	// Truncate diff if it exceeds max length to optimize token usage.
+	// truncate if too long
 	runes := []rune(diff)
 	if len(runes) > cfg.MaxDiffLength {
 		diff = string(runes[:cfg.MaxDiffLength]) + "\n\n(diff truncated...)"
@@ -46,16 +46,16 @@ func GetStagedDiff(cfg *config.Config) (string, error) {
 	return diff, nil
 }
 
-// GetStagedFiles returns a list of files that are currently staged.
+// list staged files
 func GetStagedFiles() ([]string, error) {
 	if !IsRepo() {
-		return nil, fmt.Errorf("not a git repository")
+		return nil, fmt.Errorf("not a git repo")
 	}
 
 	cmd := exec.Command("git", "diff", "--name-only", "--staged")
 	out, err := cmd.Output()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get staged files: %w", err)
+		return nil, err
 	}
 
 	output := strings.TrimSpace(string(out))
@@ -66,34 +66,32 @@ func GetStagedFiles() ([]string, error) {
 	return strings.Split(output, "\n"), nil
 }
 
-// DetectScope infers Conventional Commit scope from file paths.
+// detect commit scope
 func DetectScope(files []string) string {
 	scopes := make(map[string]int)
 
 	for _, file := range files {
 		file = strings.ReplaceAll(file, "\\", "/")
 
-		// Prioritize specific file types/suffixes
 		if strings.HasSuffix(file, "_test.go") || strings.HasPrefix(file, "test/") {
 			scopes["test"]++
 		} else if strings.HasSuffix(file, ".md") {
 			scopes["docs"]++
-		} else if strings.HasSuffix(file, "go.mod") || strings.HasSuffix(file, "go.sum") || strings.HasSuffix(file, "Makefile") {
+		} else if strings.HasSuffix(file, "go.mod") || strings.HasSuffix(file, "Makefile") {
 			scopes["build"]++
 		} else if strings.HasPrefix(file, ".github/") {
 			scopes["ci"]++
-		} else if strings.HasPrefix(file, "internal/ui/") || strings.HasPrefix(file, "ui/") {
+		} else if strings.HasPrefix(file, "internal/ui/") {
 			scopes["ui"]++
-		} else if strings.HasPrefix(file, "internal/api/") || strings.HasPrefix(file, "api/") {
+		} else if strings.HasPrefix(file, "internal/api/") {
 			scopes["api"]++
-		} else if strings.HasPrefix(file, "internal/config/") || strings.HasPrefix(file, "config/") {
+		} else if strings.HasPrefix(file, "internal/config/") {
 			scopes["config"]++
 		} else if strings.HasPrefix(file, "cmd/") {
 			scopes["cli"]++
 		} else {
-			// Try to get the top-level directory as scope if it's not "internal" or "pkg"
 			parts := strings.Split(file, "/")
-			if len(parts) > 1 && parts[0] != "internal" && parts[0] != "pkg" && parts[0] != "src" {
+			if len(parts) > 1 && parts[0] != "internal" && parts[0] != "pkg" {
 				scopes[parts[0]]++
 			}
 		}
@@ -103,7 +101,6 @@ func DetectScope(files []string) string {
 		return ""
 	}
 
-	// Find the most frequent scope
 	var maxScore int
 	var bestScope string
 	for scope, score := range scopes {
@@ -116,53 +113,36 @@ func DetectScope(files []string) string {
 	return bestScope
 }
 
-// Commit executes the 'git commit -m' command with the provided commit message.
+// run git commit -m
 func Commit(message string) error {
 	cmd := exec.Command("git", "commit", "-m", message)
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to execute git commit: %w", err)
-	}
-	return nil
+	return cmd.Run()
 }
 
-// InstallHook sets up a git hook to run ai-commit automatically on commit.
+// install git hook
 func InstallHook() error {
 	if !IsRepo() {
-		return fmt.Errorf("not a git repository")
+		return fmt.Errorf("not a git repo")
 	}
 
 	hookPath := ".git/hooks/prepare-commit-msg"
 	hookContent := `#!/bin/sh
-# ai-commit hook configuration
-# Installed by ai-commit
-
+# ai-commit hook
 if [ "$AI_COMMIT_SKIP" = "1" ]; then
     exit 0
 fi
-
-# Pass commit message file path to ai-commit
 exec < /dev/tty
 ai-commit --hook "$1" "$2" "$3"
 `
-
-	err := os.WriteFile(hookPath, []byte(hookContent), 0755)
-	if err != nil {
-		return fmt.Errorf("failed to write hook file: %w", err)
-	}
-
-	return nil
+	return os.WriteFile(hookPath, []byte(hookContent), 0755)
 }
 
-// UninstallHook removes the git hook.
+// remove git hook
 func UninstallHook() error {
 	if !IsRepo() {
-		return fmt.Errorf("not a git repository")
+		return fmt.Errorf("not a git repo")
 	}
 
 	hookPath := ".git/hooks/prepare-commit-msg"
-	if err := os.Remove(hookPath); err != nil {
-		return fmt.Errorf("failed to remove hook file: %w", err)
-	}
-
-	return nil
+	return os.Remove(hookPath)
 }

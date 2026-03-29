@@ -158,7 +158,64 @@ You can set up `ai-commit` to run automatically whenever you execute `git commit
 - [x] **Conventional Commits** (Better support and automatic scope detection)
 - [x] **Multi-language Support** (Generate commit messages in your preferred language)
 - [x] **Dry Run Mode** (`--dry-run` flag)
-- [ ] **Shell Autocompletion** (Bash, Zsh, Fish)
+## Shell Autocompletion
+
+To enable shell autocompletion for `ai-commit`, follow these steps for your respective shell:
+
+### Bash
+1. Generate the completion script:
+   ```bash
+   ai-commit --completion bash > ~/.ai-commit-completion.sh
+   ```
+2. Source the script in your `~/.bashrc` or `~/.bash_profile`:
+   ```bash
+   echo 'source ~/.ai-commit-completion.sh' >> ~/.bashrc
+   ```
+3. Reload your shell: `source ~/.bashrc`
+
+### Zsh
+1. Generate the completion script:
+   ```zsh
+   ai-commit --completion zsh > ~/.ai-commit-completion.zsh
+   ```
+2. Add the script to your `~/.zshrc`:
+   ```zsh
+   echo 'source ~/.ai-commit-completion.zsh' >> ~/.zshrc
+   ```
+3. Reload your shell: `source ~/.zshrc`
+
+### Fish
+1. Generate the completion script:
+   ```fish
+   ai-commit --completion fish > ~/.config/fish/completions/ai-commit.fish
+   ```
+2. Reload your shell or open a new terminal.
+
+After setting this up, you should be able to use tab completion for `ai-commit` commands and flags.
+
+---
+
+## Roadmap
+
+- [x] **Multi-backend support** (OpenAI, Ollama, Anthropic, Gemini)
+- [x] **Custom System Prompts** via config file
+- [x] **Interactive Configuration Wizard** (`--configure`)
+- [x] **Git Hook Integration** (Run automatically on `git commit`)
+- [x] **Project-specific Configuration** (`.ai-commit.json` in repository root)
+- [x] **Conventional Commits** (Better support and automatic scope detection)
+- [x] **Multi-language Support** (Generate commit messages in your preferred language)
+- [x] **Dry Run Mode** (`--dry-run` flag)
+- [x] **Shell Autocompletion** (Bash, Zsh, Fish)
+- [ ] **Enhanced TUI** (Polished UI experience using `bubbletea`)
+
+---
+
+## Contributing
+Contributions are welcome! Please feel free to open an issue or submit a pull request for any bugs or feature requests.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE) - see the [LICENSE](LICENSE) file for details.
 - [ ] **Enhanced TUI** (Polished UI experience using `bubbletea`)
 
 ---

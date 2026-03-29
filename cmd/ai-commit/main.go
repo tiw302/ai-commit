@@ -13,179 +13,154 @@ import (
 )
 
 func main() {
-	// CLI Flags
+	// CLI flags
 	flag.Usage = func() {
 		fmt.Printf("ai-commit - A humble AI-powered git commit generator\n\n")
 		fmt.Printf("Usage:\n")
-		fmt.Printf("  ai-commit [flags]\n\n")
-		fmt.Printf("Examples:\n")
-		fmt.Printf("  ai-commit\n")
-		fmt.Printf("  ai-commit -m \"fix login bug\"\n")
-		fmt.Printf("  ai-commit --mode troll\n")
-		fmt.Printf("  ai-commit --install-hook\n\n")
-		fmt.Printf("Flags:\n")
 		flag.PrintDefaults()
 	}
 
-	versionFlag := flag.Bool("v", false, "Print version and exit")
-	versionFullFlag := flag.Bool("version", false, "Print version and exit")
-	configureFlag := flag.Bool("configure", false, "Run the interactive configuration wizard")
-	installHookFlag := flag.Bool("install-hook", false, "Install ai-commit as a git hook")
-	uninstallHookFlag := flag.Bool("uninstall-hook", false, "Uninstall the ai-commit git hook")
-	hookModeFlag := flag.String("hook", "", "Run in git hook mode (path to commit message file)")
-	modeFlag := flag.String("mode", "", "The mode for the commit message (e.g., pro, troll)")
-	contextFlag := flag.String("m", "", "Short user context/instruction for the commit")
-	dryRunFlag := flag.Bool("dry-run", false, "Print the commit message without committing")
-	langFlag := flag.String("lang", "", "The language for the commit message (e.g., en, th, jp)")
+	versionFlag := flag.Bool("v", false, "version info")
+	versionFullFlag := flag.Bool("version", false, "version info")
+	configureFlag := flag.Bool("configure", false, "run config wizard")
+	installHookFlag := flag.Bool("install-hook", false, "install git hook")
+	uninstallHookFlag := flag.Bool("uninstall-hook", false, "uninstall git hook")
+	hookModeFlag := flag.String("hook", "", "git hook mode")
+	modeFlag := flag.String("mode", "", "commit mode (e.g. pro, troll)")
+	contextFlag := flag.String("m", "", "custom context")
+	dryRunFlag := flag.Bool("dry-run", false, "dry run mode")
+	langFlag := flag.String("lang", "", "output language")
+	completionFlag := flag.String("completion", "", "shell completion script")
 	flag.Parse()
 
-	// 0. Check for version flag
 	if *versionFlag || *versionFullFlag {
 		fmt.Printf("ai-commit version %s\n", config.Version)
 		return
 	}
 
+	// shell completion
+	if *completionFlag != "" {
+		ui.PrintCompletion(*completionFlag)
+		return
+	}
+
 	tui := ui.NewUI()
 
-	// 0.1 Check for hook installation flags
+	// manage hooks
 	if *installHookFlag {
 		if err := git.InstallHook(); err != nil {
-			tui.PrintError(fmt.Sprintf("Failed to install hook: %v", err))
+			tui.PrintError(fmt.Sprintf("hook install failed: %v", err))
 			os.Exit(1)
 		}
-		tui.PrintSuccess("Git hook installed successfully!")
+		tui.PrintSuccess("git hook installed!")
 		return
 	}
 
 	if *uninstallHookFlag {
 		if err := git.UninstallHook(); err != nil {
-			tui.PrintError(fmt.Sprintf("Failed to uninstall hook: %v", err))
+			tui.PrintError(fmt.Sprintf("hook uninstall failed: %v", err))
 			os.Exit(1)
 		}
-		tui.PrintSuccess("Git hook uninstalled successfully!")
+		tui.PrintSuccess("git hook removed!")
 		return
 	}
 
-	// 0.2 Check if we should skip in hook mode
+	// hook mode check
 	if *hookModeFlag != "" {
-		// If there are other arguments, check the source (second arg to prepare-commit-msg)
 		args := flag.Args()
 		if len(args) > 0 {
 			source := args[0]
-			// sources: message, template, merge, squash, commit
-			// We skip if a message was already provided via -m, -F, or it's an amendment/merge
+			// skip if message already exists or merging/squashing
 			if source == "message" || source == "template" || source == "merge" || source == "squash" || source == "commit" {
 				return
 			}
 		}
 	}
 
-	// 1. Load Configuration
+	// load config
 	cfg, err := config.LoadConfig()
 	if err != nil {
-		tui.PrintError(fmt.Sprintf("Configuration error: %v", err))
+		tui.PrintError(fmt.Sprintf("config error: %v", err))
 		os.Exit(1)
 	}
 
-	// 0.5 Check for configure flag
+	// manual config
 	if *configureFlag {
 		runConfigurationWizard(tui, cfg)
 		return
 	}
 
-	// 0.6 Check for first-time setup (missing API Key)
+	// initial setup
 	if cfg.APIKey == "" {
-		tui.PrintInfo("It looks like this is your first time running ai-commit (or your API key is missing).")
-		// Custom prompt for setup
-		choice := tui.PromptUser("Would you like to run the setup wizard now? [Y/n]", "Y")
+		tui.PrintInfo("no API key found")
+		choice := tui.PromptUser("run setup wizard? [Y/n]", "Y")
 		choice = strings.ToLower(choice)
 		
 		if choice == "y" || choice == "yes" {
 			runConfigurationWizard(tui, cfg)
-			// Reload config after wizard completes to pick up new values
-			var err error
-			cfg, err = config.LoadConfig()
-			if err != nil {
-				tui.PrintError(fmt.Sprintf("Configuration reload error: %v", err))
-				os.Exit(1)
-			}
+			cfg, _ = config.LoadConfig()
 		} else {
-			tui.PrintInfo("You can run 'ai-commit --configure' later to set up your API key.")
 			if cfg.Provider != "ollama" {
-				tui.PrintInfo(fmt.Sprintf("No API key configured for %s. Aborting.", cfg.Provider))
+				tui.PrintInfo(fmt.Sprintf("no key for %s. exit.", cfg.Provider))
 				os.Exit(0)
 			}
 		}
 	}
 
-	// Apply colors from config
 	tui.ApplyConfig(cfg.UIColors)
 
-	// 2. Determine Prompt Mode
+	// prompt mode
 	var prompt string
-
 	if *modeFlag != "" {
-		// CLI flag takes precedence
 		var ok bool
 		prompt, ok = cfg.Modes[*modeFlag]
 		if !ok {
-			tui.PrintError(fmt.Sprintf("Unknown mode '%s'. Check your config.json", *modeFlag))
+			tui.PrintError("unknown mode")
 			os.Exit(1)
 		}
 	} else if cfg.SystemPrompt != "" {
-		// Use custom system prompt if defined in config
 		prompt = cfg.SystemPrompt
 	} else {
-		// Fallback to default mode
-		var ok bool
-		prompt, ok = cfg.Modes[cfg.DefaultMode]
-		if !ok {
-			tui.PrintError(fmt.Sprintf("Unknown mode '%s'. Check your config.json", cfg.DefaultMode))
-			os.Exit(1)
-		}
+		prompt = cfg.Modes[cfg.DefaultMode]
 	}
 
-	// Append user context if provided
 	if *contextFlag != "" {
 		prompt = fmt.Sprintf("%s\n\nUser Context: %s", prompt, *contextFlag)
 	}
 
-	// 2.1 Determine Language
+	// set language
 	language := cfg.Language
 	if *langFlag != "" {
 		language = *langFlag
 	}
 	if language != "" && language != "en" {
-		prompt = fmt.Sprintf("%s\n\nIMPORTANT: Generate the commit message in the following language: %s", prompt, language)
+		prompt = fmt.Sprintf("%s\n\nLanguage: %s", prompt, language)
 	}
 
-	// 3. Get Staged Diff
+	// get staged diff
 	diff, err := git.GetStagedDiff(cfg)
 	if err != nil {
 		tui.PrintError(err.Error())
 		os.Exit(1)
 	}
 
-	// 3.1 Automatic Scope Detection
+	// scope detection
 	files, err := git.GetStagedFiles()
 	if err == nil && len(files) > 0 {
-		scope := git.DetectScope(files)
-		if scope != "" {
+		if scope := git.DetectScope(files); scope != "" {
 			prompt = fmt.Sprintf("%s\n\nSuggested Scope: %s", prompt, scope)
 		}
-		// Also provide file names for better context
-		fileList := strings.Join(files, "\n")
-		prompt = fmt.Sprintf("%s\n\nFiles Modified:\n%s", prompt, fileList)
+		prompt = fmt.Sprintf("%s\n\nFiles Modified:\n%s", prompt, strings.Join(files, "\n"))
 	}
 
-	// 4. Initialize AI Provider
+	// init AI
 	provider, err := api.NewProvider(cfg)
 	if err != nil {
-		tui.PrintError(fmt.Sprintf("AI Provider error: %v", err))
+		tui.PrintError(fmt.Sprintf("provider error: %v", err))
 		os.Exit(1)
 	}
 
-	// 5. Generate Commit Message via AI
+	// gen loop
 	var commitMessage string
 	for {
 		stopChan := make(chan bool)
@@ -194,7 +169,7 @@ func main() {
 		msg, err := provider.GenerateCommitMessage(prompt, diff)
 		stopChan <- true
 		if err != nil {
-			tui.PrintError(fmt.Sprintf("AI Generation failed: %v", err))
+			tui.PrintError(fmt.Sprintf("gen failed: %v", err))
 			os.Exit(1)
 		}
 
@@ -202,58 +177,41 @@ func main() {
 		fmt.Printf("\n\n%sProposed Commit Message:%s\n%s\n", tui.Info, "\033[0m", commitMessage)
 
 		if *dryRunFlag {
-			tui.PrintInfo("Dry run mode enabled. Skipping commit.")
+			tui.PrintInfo("dry run. skip commit.")
 			return
 		}
 
-		// 6. Interactive Prompt
+		// handle action
 		choice := tui.AskForConfirmation()
 		switch choice {
 		case "y", "yes":
 			if *hookModeFlag != "" {
-				if err := os.WriteFile(*hookModeFlag, []byte(commitMessage), 0644); err != nil {
-					tui.PrintError(fmt.Sprintf("Failed to write commit message: %v", err))
-					os.Exit(1)
-				}
+				os.WriteFile(*hookModeFlag, []byte(commitMessage), 0644)
 				return
 			}
 			if err := git.Commit(commitMessage); err != nil {
-				tui.PrintError(fmt.Sprintf("Failed to commit: %v", err))
+				tui.PrintError(err.Error())
 				os.Exit(1)
 			}
-			tui.PrintSuccess("Changes committed successfully!")
+			tui.PrintSuccess("committed!")
 			return
 		case "e", "edit":
-			editedMsg, err := ui.OpenInEditor(commitMessage)
-			if err != nil {
-				tui.PrintError(fmt.Sprintf("Editor error: %v", err))
-				os.Exit(1)
-			}
+			editedMsg, _ := ui.OpenInEditor(commitMessage)
 			if editedMsg == "" {
-				tui.PrintInfo("Commit message is empty. Cancelled.")
+				tui.PrintInfo("empty message. cancel.")
 				return
 			}
 			if *hookModeFlag != "" {
-				if err := os.WriteFile(*hookModeFlag, []byte(editedMsg), 0644); err != nil {
-					tui.PrintError(fmt.Sprintf("Failed to write commit message: %v", err))
-					os.Exit(1)
-				}
+				os.WriteFile(*hookModeFlag, []byte(editedMsg), 0644)
 				return
 			}
-			if err := git.Commit(editedMsg); err != nil {
-				tui.PrintError(fmt.Sprintf("Failed to commit: %v", err))
-				os.Exit(1)
-			}
-			tui.PrintSuccess("Changes committed!")
+			git.Commit(editedMsg)
+			tui.PrintSuccess("committed!")
 			return
 		case "r", "regenerate":
-			tui.PrintInfo("Regenerating...")
 			continue
-		case "n", "no":
-			tui.PrintInfo("Commit cancelled.")
-			return
 		default:
-			tui.PrintInfo("Operation cancelled.")
+			tui.PrintInfo("cancelled.")
 			return
 		}
 	}
@@ -261,45 +219,28 @@ func main() {
 
 func runConfigurationWizard(tui *ui.UI, cfg *config.Config) {
 	fmt.Println()
-	tui.PrintInfo("Welcome to the ai-commit configuration wizard!")
-	fmt.Println("Press Enter to keep the current value in [brackets].")
-	fmt.Println()
+	tui.PrintInfo("config wizard")
+	
+	cfg.Provider = tui.PromptUser("provider (openai/anthropic/gemini/ollama)", cfg.Provider)
 
-	// 1. Provider
-	cfg.Provider = tui.PromptUser("Select AI Provider (openai, anthropic, gemini, ollama)", cfg.Provider)
-
-	// 2. API Key
-	// Show a masked version of the current key if it exists
-	currentKeyDisplay := "none"
+	currentKey := "none"
 	if len(cfg.APIKey) > 8 {
-		currentKeyDisplay = "..." + cfg.APIKey[len(cfg.APIKey)-4:]
-	} else if len(cfg.APIKey) > 0 {
-		currentKeyDisplay = "***"
+		currentKey = "..." + cfg.APIKey[len(cfg.APIKey)-4:]
 	}
 	
-	apiKey := tui.PromptUser(fmt.Sprintf("Enter API Key (current: %s)", currentKeyDisplay), "")
-	if apiKey != "" {
+	if apiKey := tui.PromptUser(fmt.Sprintf("API key (%s)", currentKey), ""); apiKey != "" {
 		cfg.APIKey = apiKey
 	}
 
-	// 3. Model Name
-	cfg.ModelName = tui.PromptUser("Enter Model Name", cfg.ModelName)
+	cfg.ModelName = tui.PromptUser("model name", cfg.ModelName)
+	cfg.APIURL = tui.PromptUser("API URL (optional)", cfg.APIURL)
+	cfg.SystemPrompt = tui.PromptUser("system prompt (optional)", cfg.SystemPrompt)
+	cfg.Language = tui.PromptUser("language (en/th/jp)", cfg.Language)
 
-	// 4. API URL (Optional)
-	cfg.APIURL = tui.PromptUser("Enter API URL (optional)", cfg.APIURL)
-
-	// 5. System Prompt (Optional)
-	cfg.SystemPrompt = tui.PromptUser("Enter Global System Prompt (optional)", cfg.SystemPrompt)
-
-	// 6. Language
-	cfg.Language = tui.PromptUser("Enter Preferred Language (e.g., en, th, jp)", cfg.Language)
-
-	// Save
 	if err := config.SaveConfig(cfg); err != nil {
-		tui.PrintError(fmt.Sprintf("Failed to save configuration: %v", err))
+		tui.PrintError("save failed")
 		os.Exit(1)
 	}
 
-	tui.PrintSuccess("Configuration saved successfully!")
+	tui.PrintSuccess("config saved!")
 }
-

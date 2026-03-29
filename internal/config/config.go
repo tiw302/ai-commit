@@ -2,15 +2,14 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 )
 
-// Version is the current version of the ai-commit tool.
+// current version
 const Version = "0.1.0"
 
-// UIColors defines terminal styling for output.
+// TUI colors
 type UIColors struct {
 	Success string `json:"success"`
 	Error   string `json:"error"`
@@ -18,7 +17,7 @@ type UIColors struct {
 	Info    string `json:"info"`
 }
 
-// Config represents the application settings.
+// app settings
 type Config struct {
 	Provider      string            `json:"provider"`
 	APIURL        string            `json:"api_url"`
@@ -33,22 +32,19 @@ type Config struct {
 	Language      string            `json:"language,omitempty"`
 }
 
-// LoadConfig reads the configuration from the user's config directory.
-// It creates a default configuration if none exists.
+// load config from disk
 func LoadConfig() (*Config, error) {
 	configDir, err := os.UserConfigDir()
 	if err != nil {
-		return nil, fmt.Errorf("could not determine user config directory: %w", err)
+		return nil, err
 	}
 
 	appDir := filepath.Join(configDir, "ai-commit")
 	path := filepath.Join(appDir, "config.json")
 
-	// Ensure app directory exists.
+	// init default config if missing
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		if err := os.MkdirAll(appDir, 0755); err != nil {
-			return nil, fmt.Errorf("failed to create config directory: %w", err)
-		}
+		os.MkdirAll(appDir, 0755)
 
 		defaultCfg := &Config{
 			Provider:      "openai",
@@ -66,38 +62,29 @@ func LoadConfig() (*Config, error) {
 				"*.pdf",
 			},
 			Modes: map[string]string{
-				"pro":   "You are a professional software engineer. Generate a concise commit message using the Conventional Commits specification (e.g., 'feat(ui): add button'). Base the scope on the modified files.",
-				"troll": "You are a sarcastic dev. Roast the code and generate a funny commit message.",
+				"pro":   "Conventional Commits style.",
+				"troll": "Sarcastic developer style.",
 			},
 			DefaultMode: "pro",
 			Language:    "en",
 		}
 
 		data, _ := json.MarshalIndent(defaultCfg, "", "  ")
-		if err := os.WriteFile(path, data, 0644); err != nil {
-			return nil, fmt.Errorf("failed to create default config: %w", err)
-		}
+		os.WriteFile(path, data, 0644)
 	}
 
 	file, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("config file not found at %s: %w", path, err)
+		return nil, err
 	}
 
 	var cfg Config
-	if err := json.Unmarshal(file, &cfg); err != nil {
-		return nil, fmt.Errorf("failed to parse config JSON: %w", err)
-	}
+	json.Unmarshal(file, &cfg)
 
-	// Check for project-specific config by walking up the directory tree
-	if projectConfigPath, err := findProjectConfig(); err == nil && projectConfigPath != "" {
-		projectFile, err := os.ReadFile(projectConfigPath)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read project config file: %w", err)
-		}
-		if err := json.Unmarshal(projectFile, &cfg); err != nil {
-			return nil, fmt.Errorf("failed to parse project config JSON: %w", err)
-		}
+	// merge project-specific config
+	if projectPath, err := findProjectConfig(); err == nil && projectPath != "" {
+		projectFile, _ := os.ReadFile(projectPath)
+		json.Unmarshal(projectFile, &cfg)
 	}
 
 	if envKey := os.Getenv("AI_COMMIT_API_KEY"); envKey != "" {
@@ -107,7 +94,7 @@ func LoadConfig() (*Config, error) {
 	return &cfg, nil
 }
 
-// findProjectConfig searches for .ai-commit.json in current and parent directories.
+// search for .ai-commit.json in parent dirs
 func findProjectConfig() (string, error) {
 	dir, err := os.Getwd()
 	if err != nil {
@@ -122,7 +109,6 @@ func findProjectConfig() (string, error) {
 
 		parent := filepath.Dir(dir)
 		if parent == dir {
-			// Reached root
 			break
 		}
 		dir = parent
@@ -130,29 +116,18 @@ func findProjectConfig() (string, error) {
 	return "", nil
 }
 
-// SaveConfig writes the configuration to the user's config directory.
+// save config to disk
 func SaveConfig(cfg *Config) error {
 	configDir, err := os.UserConfigDir()
 	if err != nil {
-		return fmt.Errorf("could not determine user config directory: %w", err)
+		return err
 	}
 
 	appDir := filepath.Join(configDir, "ai-commit")
 	path := filepath.Join(appDir, "config.json")
 
-	// Ensure app directory exists.
-	if err := os.MkdirAll(appDir, 0755); err != nil {
-		return fmt.Errorf("failed to create config directory: %w", err)
-	}
+	os.MkdirAll(appDir, 0755)
 
-	data, err := json.MarshalIndent(cfg, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal config: %w", err)
-	}
-
-	if err := os.WriteFile(path, data, 0644); err != nil {
-		return fmt.Errorf("failed to write config file: %w", err)
-	}
-
-	return nil
+	data, _ := json.MarshalIndent(cfg, "", "  ")
+	return os.WriteFile(path, data, 0644)
 }
