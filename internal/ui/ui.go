@@ -8,10 +8,12 @@ import (
 	"strings"
 	"time"
 
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/tiw302/ai-commit/internal/config"
 )
 
-// TUI state
+// UI state
 type UI struct {
 	Success string
 	Error   string
@@ -19,6 +21,13 @@ type UI struct {
 	Info    string
 	Prompt  string
 }
+
+// styles
+var (
+	titleStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("36")).Bold(true)
+	itemStyle   = lipgloss.NewStyle().PaddingLeft(2)
+	selectStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("36")).PaddingLeft(0)
+)
 
 // init UI with colors
 func NewUI() *UI {
@@ -51,10 +60,10 @@ func LoadingSpinner(stopChan chan bool) {
 	for {
 		select {
 		case <-stopChan:
-			fmt.Print("\r")
+			fmt.Print("\r\033[K")
 			return
 		default:
-			fmt.Printf("\r\033[36m%s\033[0m generating...", spinner[i])
+			fmt.Printf("\r\033[36m%s\033[0m generating commit message...", spinner[i])
 			i = (i + 1) % len(spinner)
 			time.Sleep(100 * time.Millisecond)
 		}
@@ -77,12 +86,59 @@ func (u *UI) PromptUser(label string, defaultValue string) string {
 	return input
 }
 
-// ask for confirmation
+// confirm model
+type confirmModel struct {
+	choices  []string
+	cursor   int
+	selected string
+}
+
+func (m confirmModel) Init() tea.Cmd { return nil }
+func (m confirmModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "ctrl+c", "q", "esc":
+			m.selected = "n"
+			return m, tea.Quit
+		case "up", "k":
+			if m.cursor > 0 { m.cursor-- }
+		case "down", "j":
+			if m.cursor < len(m.choices)-1 { m.cursor++ }
+		case "enter":
+			m.selected = string(m.choices[m.cursor][0])
+			return m, tea.Quit
+		case "y", "n", "e", "r":
+			m.selected = msg.String()
+			return m, tea.Quit
+		}
+	}
+	return m, nil
+}
+func (m confirmModel) View() string {
+	s := titleStyle.Render("? commit message?") + "\n\n"
+	for i, choice := range m.choices {
+		cursor := " "
+		if m.cursor == i {
+			cursor = "❯"
+			s += selectStyle.Render(fmt.Sprintf("%s %s", cursor, choice)) + "\n"
+		} else {
+			s += itemStyle.Render(fmt.Sprintf("%s %s", cursor, choice)) + "\n"
+		}
+	}
+	s += "\n(press enter to select, or use shortcuts: y/n/e/r)\n"
+	return s
+}
+
+// ask for confirmation with bubbletea
 func (u *UI) AskForConfirmation() string {
-	fmt.Printf("\n%s? commit? [y]es / [n]o / [e]dit / [r]egenerate: \033[0m", u.Prompt)
-	reader := bufio.NewReader(os.Stdin)
-	input, _ := reader.ReadString('\n')
-	return strings.ToLower(strings.TrimSpace(input))
+	m := confirmModel{
+		choices: []string{"yes", "no", "edit", "regenerate"},
+	}
+	p := tea.NewProgram(m)
+	finalModel, err := p.Run()
+	if err != nil { return "n" }
+	return finalModel.(confirmModel).selected
 }
 
 // open editor for message

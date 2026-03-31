@@ -148,16 +148,6 @@ You can set up `ai-commit` to run automatically whenever you execute `git commit
 
 *Note: If you provide a message manually (e.g., `git commit -m "my message"`), the hook will be skipped automatically.*
 
-## Roadmap
-
-- [x] **Multi-backend support** (OpenAI, Ollama, Anthropic, Gemini)
-- [x] **Custom System Prompts** via config file
-- [x] **Interactive Configuration Wizard** (`--configure`)
-- [x] **Git Hook Integration** (Run automatically on `git commit`)
-- [x] **Project-specific Configuration** (`.ai-commit.json` in repository root)
-- [x] **Conventional Commits** (Better support and automatic scope detection)
-- [x] **Multi-language Support** (Generate commit messages in your preferred language)
-- [x] **Dry Run Mode** (`--dry-run` flag)
 ## Shell Autocompletion
 
 To enable shell autocompletion for `ai-commit`, follow these steps for your respective shell:
@@ -206,17 +196,7 @@ After setting this up, you should be able to use tab completion for `ai-commit` 
 - [x] **Multi-language Support** (Generate commit messages in your preferred language)
 - [x] **Dry Run Mode** (`--dry-run` flag)
 - [x] **Shell Autocompletion** (Bash, Zsh, Fish)
-- [ ] **Enhanced TUI** (Polished UI experience using `bubbletea`)
-
----
-
-## Contributing
-Contributions are welcome! Please feel free to open an issue or submit a pull request for any bugs or feature requests.
-
-## License
-
-This project is licensed under the [MIT License](LICENSE) - see the [LICENSE](LICENSE) file for details.
-- [ ] **Enhanced TUI** (Polished UI experience using `bubbletea`)
+- [x] **Enhanced TUI** (Polished UI experience using `bubbletea`)
 
 ---
 
