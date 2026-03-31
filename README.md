@@ -25,7 +25,7 @@ One tool to rule all your favorite AI providers: OpenAI, Anthropic, Google Gemin
 - **OpenAI Compatible:** Supports any API that follows OpenAI's format (Groq, DeepSeek, OpenRouter, Mistral, etc.).
 - **Zero-Config:** Automatically generates a default configuration file.
 - **Custom Modes:** Support for different prompt styles (e.g., `pro`, `conventional`).
-- **Interactive TUI:** Review, edit in your preferred editor, or regenerate the message instantly.
+- **Modern Interactive TUI:** Polished terminal experience powered by `bubbletea`. Review, edit, or regenerate with arrow keys and shortcuts.
 - **Smart Filtering:** Automatically ignores binaries and large lockfiles to optimize token usage.
 
 ## Configuration
@@ -115,10 +115,12 @@ You can place a `.ai-commit.json` file in your project root to override global s
 
 1. Stage your changes: `git add .`
 2. Run the tool: `ai-commit`
-3. Review the AI's suggestion:
-   - Press **y** to accept and commit.
-   - Press **e** to edit the message first.
-   - Press **r** to try generating a new one.
+3. Review the AI's suggestion using the **Interactive TUI**:
+   - Use **Arrow Keys** or **j/k** to navigate.
+   - Press **Enter** or **y** to accept and commit.
+   - Press **e** to edit the message in your preferred editor.
+   - Press **r** to try generating a new message.
+   - Press **q** or **Esc** to cancel.
 
 ### CLI Flags
 
@@ -197,6 +199,11 @@ After setting this up, you should be able to use tab completion for `ai-commit` 
 - [x] **Dry Run Mode** (`--dry-run` flag)
 - [x] **Shell Autocompletion** (Bash, Zsh, Fish)
 - [x] **Enhanced TUI** (Polished UI experience using `bubbletea`)
+- [ ] **Visual Diff Preview** (Rich syntax-highlighted diffs directly in the TUI)
+- [ ] **Interactive Hunk Selection** (Pick specific code changes to commit within the tool)
+- [ ] **AI-powered Changelog Generator** (Create `CHANGELOG.md` updates from your history)
+- [ ] **Commit Analysis & Refinement** (Let the AI review and improve your manual commit messages)
+- [ ] **Cost & Token Tracking** (Monitor usage and expenses for paid API providers)
 
 ---
 
