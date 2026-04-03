@@ -30,6 +30,7 @@ func main() {
 	contextFlag := flag.String("m", "", "custom context")
 	dryRunFlag := flag.Bool("dry-run", false, "dry run mode")
 	langFlag := flag.String("lang", "", "output language")
+	interactiveFlag := flag.Bool("i", false, "interactive mode to select files")
 	completionFlag := flag.String("completion", "", "shell completion script")
 	flag.Parse()
 
@@ -137,11 +138,51 @@ func main() {
 		prompt = fmt.Sprintf("%s\n\nLanguage: %s", prompt, language)
 	}
 
+	// interactive staging
+	if *interactiveFlag {
+		staged, _ := git.GetStagedFiles()
+		unstaged, _ := git.GetUnstagedFiles()
+		
+		items := tui.ShowStagingUI(staged, unstaged)
+		if items != nil {
+			for _, item := range items {
+				if item.Selected && !item.IsStaged {
+					git.StageFile(item.Name)
+				} else if !item.Selected && item.IsStaged {
+					git.UnstageFile(item.Name)
+				}
+			}
+		}
+	}
+
 	// get staged diff
 	diff, err := git.GetStagedDiff(cfg)
 	if err != nil {
-		tui.PrintError(err.Error())
-		os.Exit(1)
+		// if nothing staged and not in interactive mode, try to show interactive
+		if !*interactiveFlag {
+			staged, _ := git.GetStagedFiles()
+			unstaged, _ := git.GetUnstagedFiles()
+			if len(unstaged) > 0 {
+				tui.PrintInfo("no staged changes. opening interactive selector...")
+				items := tui.ShowStagingUI(staged, unstaged)
+				if items != nil {
+					for _, item := range items {
+						if item.Selected && !item.IsStaged {
+							git.StageFile(item.Name)
+						} else if !item.Selected && item.IsStaged {
+							git.UnstageFile(item.Name)
+						}
+					}
+					// retry getting diff
+					diff, err = git.GetStagedDiff(cfg)
+				}
+			}
+		}
+		
+		if err != nil {
+			tui.PrintError(err.Error())
+			os.Exit(1)
+		}
 	}
 
 	// scope detection

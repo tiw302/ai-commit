@@ -66,6 +66,38 @@ func GetStagedFiles() ([]string, error) {
 	return strings.Split(output, "\n"), nil
 }
 
+// list unstaged files
+func GetUnstagedFiles() ([]string, error) {
+	if !IsRepo() {
+		return nil, fmt.Errorf("not a git repo")
+	}
+
+	cmd := exec.Command("git", "ls-files", "--modified", "--others", "--exclude-standard")
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, err
+	}
+
+	output := strings.TrimSpace(string(out))
+	if output == "" {
+		return []string{}, nil
+	}
+
+	return strings.Split(output, "\n"), nil
+}
+
+// stage file
+func StageFile(file string) error {
+	cmd := exec.Command("git", "add", file)
+	return cmd.Run()
+}
+
+// unstage file
+func UnstageFile(file string) error {
+	cmd := exec.Command("git", "restore", "--staged", file)
+	return cmd.Run()
+}
+
 // detect commit scope
 func DetectScope(files []string) string {
 	scopes := make(map[string]int)
