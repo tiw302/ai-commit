@@ -151,6 +151,21 @@ func Commit(message string) error {
 	return cmd.Run()
 }
 
+// get recent commits for changelog
+func GetRecentCommits(n int) (string, error) {
+	if !IsRepo() {
+		return "", fmt.Errorf("not a git repo")
+	}
+
+	cmd := exec.Command("git", "log", "-n", fmt.Sprintf("%d", n), "--pretty=format:- %s")
+	out, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+
+	return string(out), nil
+}
+
 // install git hook
 func InstallHook() error {
 	if !IsRepo() {

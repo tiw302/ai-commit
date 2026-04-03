@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/tiw302/ai-commit/internal/api"
 	"github.com/tiw302/ai-commit/internal/config"
@@ -31,6 +32,7 @@ func main() {
 	dryRunFlag := flag.Bool("dry-run", false, "dry run mode")
 	langFlag := flag.String("lang", "", "output language")
 	interactiveFlag := flag.Bool("i", false, "interactive mode to select files")
+	changelogFlag := flag.Bool("changelog", false, "generate CHANGELOG.md from git history")
 	completionFlag := flag.String("completion", "", "shell completion script")
 	flag.Parse()
 
@@ -63,6 +65,73 @@ func main() {
 			os.Exit(1)
 		}
 		tui.PrintSuccess("git hook removed!")
+		return
+	}
+
+	// changelog mode
+	if *changelogFlag {
+		cfg, err := config.LoadConfig()
+		if err != nil {
+			tui.PrintError(err.Error())
+			os.Exit(1)
+		}
+
+		commits, err := git.GetRecentCommits(30)
+		if err != nil {
+			tui.PrintError(err.Error())
+			os.Exit(1)
+		}
+
+		provider, err := api.NewProvider(cfg)
+		if err != nil {
+			tui.PrintError(err.Error())
+			os.Exit(1)
+		}
+
+		prompt := "Generate a CHANGELOG.md update based on these recent git commits. Group them into relevant sections (Features, Bug Fixes, etc.). Only output the markdown content for the changelog."
+		if *langFlag != "" {
+			prompt = fmt.Sprintf("%s\n\nLanguage: %s", prompt, *langFlag)
+		}
+
+		stopChan := make(chan bool)
+		go func() {
+			spinner := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+			i := 0
+			for {
+				select {
+				case <-stopChan:
+					fmt.Print("\r\033[K")
+					return
+				default:
+					fmt.Printf("\r\033[36m%s\033[0m generating changelog...", spinner[i])
+					i = (i + 1) % len(spinner)
+					time.Sleep(100 * time.Millisecond)
+				}
+			}
+		}()
+
+		changelog, err := provider.GenerateCommitMessage(prompt, commits)
+		stopChan <- true
+		if err != nil {
+			tui.PrintError(err.Error())
+			os.Exit(1)
+		}
+
+		fmt.Printf("\n\n%sProposed Changelog:%s\n%s\n", tui.Info, "\033[0m", changelog)
+
+		if *dryRunFlag {
+			return
+		}
+
+		choice := tui.PromptUser("save to CHANGELOG.md? [y/N]", "n")
+		if strings.ToLower(choice) == "y" {
+			err := os.WriteFile("CHANGELOG.md", []byte(changelog), 0644)
+			if err != nil {
+				tui.PrintError(err.Error())
+				os.Exit(1)
+			}
+			tui.PrintSuccess("CHANGELOG.md updated!")
+		}
 		return
 	}
 
