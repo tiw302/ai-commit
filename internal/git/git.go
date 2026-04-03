@@ -12,24 +12,38 @@ import (
 // check if git repo
 func IsRepo() bool {
 	cmd := exec.Command("git", "rev-parse", "--is-inside-work-tree")
-	return cmd.Run() == nil
+	if err := cmd.Run(); err != nil {
+		// If the command fails, it's likely not a git repo or git is not installed.
+		// We don't want to return an error here, just indicate it's not a repo.
+		return false
+	}
+	return true
 }
 
 // get staged diff
 func GetStagedDiff(cfg *config.Config) (string, error) {
 	if !IsRepo() {
-		return "", fmt.Errorf("not a git repo")
+		return "", fmt.Errorf("not a git repository")
 	}
 
-	var excludePatterns []string
+	var excludeArgs []string
 	for _, pattern := range cfg.ExcludeFiles {
-		excludePatterns = append(excludePatterns, ":!"+pattern)
+		excludeArgs = append(excludeArgs, ":!"+pattern)
 	}
 
-	args := append([]string{"diff", "--staged", "--"}, excludePatterns...)
-	out, err := exec.Command("git", args...).Output()
+	// Construct the git command with exclude patterns
+	args := append([]string{"diff", "--staged", "--"}, excludeArgs...)
+	cmd := exec.Command("git", args...)
+	out, err := cmd.Output()
 	if err != nil {
-		return "", err
+		// If git diff returns an error (e.g., no staged changes, or other git error)
+		// check for common cases like empty diff.
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			if len(exitErr.Stderr) > 0 && strings.Contains(string(exitErr.Stderr), "no diff") {
+				return "", fmt.Errorf("no staged changes to commit")
+			}
+		}
+		return "", fmt.Errorf("failed to get staged diff: %w", err)
 	}
 
 	diff := string(out)
@@ -49,13 +63,13 @@ func GetStagedDiff(cfg *config.Config) (string, error) {
 // list staged files
 func GetStagedFiles() ([]string, error) {
 	if !IsRepo() {
-		return nil, fmt.Errorf("not a git repo")
+		return nil, fmt.Errorf("not a git repository")
 	}
 
 	cmd := exec.Command("git", "diff", "--name-only", "--staged")
 	out, err := cmd.Output()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to list staged files: %w", err)
 	}
 
 	output := strings.TrimSpace(string(out))
@@ -69,13 +83,13 @@ func GetStagedFiles() ([]string, error) {
 // list unstaged files
 func GetUnstagedFiles() ([]string, error) {
 	if !IsRepo() {
-		return nil, fmt.Errorf("not a git repo")
+		return nil, fmt.Errorf("not a git repository")
 	}
 
 	cmd := exec.Command("git", "ls-files", "--modified", "--others", "--exclude-standard")
 	out, err := cmd.Output()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to list unstaged files: %w", err)
 	}
 
 	output := strings.TrimSpace(string(out))
@@ -88,14 +102,26 @@ func GetUnstagedFiles() ([]string, error) {
 
 // stage file
 func StageFile(file string) error {
+	if !IsRepo() {
+		return fmt.Errorf("not a git repository")
+	}
 	cmd := exec.Command("git", "add", file)
-	return cmd.Run()
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to stage file %s: %w", file, err)
+	}
+	return nil
 }
 
 // unstage file
 func UnstageFile(file string) error {
+	if !IsRepo() {
+		return fmt.Errorf("not a git repository")
+	}
 	cmd := exec.Command("git", "restore", "--staged", file)
-	return cmd.Run()
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to unstage file %s: %w", file, err)
+	}
+	return nil
 }
 
 // detect commit scope
@@ -147,20 +173,32 @@ func DetectScope(files []string) string {
 
 // run git commit -m
 func Commit(message string) error {
+	if !IsRepo() {
+		return fmt.Errorf("not a git repository")
+	}
+	// Using -m directly can be risky if the message contains shell metacharacters.
+	// For a robust solution, consider using git commit --message=<message> or piping to stdin.
+	// For simplicity here, we'll assume messages are reasonably safe or rely on git's handling.
+	// A more secure approach would be:
+	// cmd := exec.Command("git", "commit", "--file=-")
+	// cmd.Stdin = strings.NewReader(message)
 	cmd := exec.Command("git", "commit", "-m", message)
-	return cmd.Run()
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to commit: %w", err)
+	}
+	return nil
 }
 
 // get recent commits for changelog
 func GetRecentCommits(n int) (string, error) {
 	if !IsRepo() {
-		return "", fmt.Errorf("not a git repo")
+		return "", fmt.Errorf("not a git repository")
 	}
 
 	cmd := exec.Command("git", "log", "-n", fmt.Sprintf("%d", n), "--pretty=format:- %s")
 	out, err := cmd.Output()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to get recent commits: %w", err)
 	}
 
 	return string(out), nil
@@ -169,7 +207,7 @@ func GetRecentCommits(n int) (string, error) {
 // install git hook
 func InstallHook() error {
 	if !IsRepo() {
-		return fmt.Errorf("not a git repo")
+		return fmt.Errorf("not a git repository")
 	}
 
 	hookPath := ".git/hooks/prepare-commit-msg"
@@ -181,15 +219,24 @@ fi
 exec < /dev/tty
 ai-commit --hook "$1" "$2" "$3"
 `
-	return os.WriteFile(hookPath, []byte(hookContent), 0755)
+	if err := os.WriteFile(hookPath, []byte(hookContent), 0755); err != nil {
+		return fmt.Errorf("failed to write git hook: %w", err)
+	}
+	return nil
 }
 
 // remove git hook
 func UninstallHook() error {
 	if !IsRepo() {
-		return fmt.Errorf("not a git repo")
+		return fmt.Errorf("not a git repository")
 	}
 
 	hookPath := ".git/hooks/prepare-commit-msg"
-	return os.Remove(hookPath)
+	if err := os.Remove(hookPath); err != nil {
+		// If the file doesn't exist, it's not an error, just means it's already uninstalled.
+		if !os.IsNotExist(err) {
+			return fmt.Errorf("failed to remove git hook: %w", err)
+		}
+	}
+	return nil
 }
