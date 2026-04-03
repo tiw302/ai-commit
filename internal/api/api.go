@@ -67,27 +67,34 @@ func (p *OpenAIProvider) GenerateCommitMessage(prompt, diff string) (string, err
 		},
 	}
 
-	jsonData, _ := json.Marshal(reqBody)
-	req, _ := http.NewRequest("POST", p.cfg.APIURL, bytes.NewBuffer(jsonData))
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", p.cfg.APIURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
 	req.Header.Set("Content-Type", "application/json")
 	if p.cfg.APIKey != "" {
 		req.Header.Set("Authorization", "Bearer "+p.cfg.APIKey)
 	}
 
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(req)
+	body, err := doRequest(req, 30*time.Second)
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
-
-	body, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("API error: %d", resp.StatusCode)
-	}
 
 	var aiResp OpenAIResponse
-	json.Unmarshal(body, &aiResp)
+	if err := json.Unmarshal(body, &aiResp); err != nil {
+		return "", fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	if aiResp.Error.Message != "" {
+		return "", fmt.Errorf("API error: %s", aiResp.Error.Message)
+	}
 
 	if len(aiResp.Choices) == 0 {
 		return "", fmt.Errorf("empty AI response")
@@ -121,25 +128,31 @@ func (p *OllamaProvider) GenerateCommitMessage(prompt, diff string) (string, err
 		Stream: false,
 	}
 
-	jsonData, _ := json.Marshal(reqBody)
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+
 	apiURL := p.cfg.APIURL
 	if apiURL == "" {
 		apiURL = "http://localhost:11434/api/chat"
 	}
 
-	req, _ := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{Timeout: 60 * time.Second}
-	resp, err := client.Do(req)
+	body, err := doRequest(req, 60*time.Second)
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
 	var ollamaResp OllamaResponse
-	json.Unmarshal(body, &ollamaResp)
+	if err := json.Unmarshal(body, &ollamaResp); err != nil {
+		return "", fmt.Errorf("failed to unmarshal response: %w", err)
+	}
 
 	return ollamaResp.Message.Content, nil
 }
@@ -164,31 +177,44 @@ func (p *AnthropicProvider) GenerateCommitMessage(prompt, diff string) (string, 
 		},
 	}
 
-	jsonData, _ := json.Marshal(reqBody)
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+
 	apiURL := p.cfg.APIURL
 	if apiURL == "" {
 		apiURL = "https://api.anthropic.com/v1/messages"
 	}
 
-	req, _ := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-api-key", p.cfg.APIKey)
 	req.Header.Set("anthropic-version", "2023-06-01")
 
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(req)
+	body, err := doRequest(req, 30*time.Second)
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
 	var anthroResp struct {
 		Content []struct {
 			Text string `json:"text"`
 		} `json:"content"`
+		Error struct {
+			Message string `json:"message"`
+		} `json:"error"`
 	}
-	json.Unmarshal(body, &anthroResp)
+	if err := json.Unmarshal(body, &anthroResp); err != nil {
+		return "", fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	if anthroResp.Error.Message != "" {
+		return "", fmt.Errorf("API error: %s", anthroResp.Error.Message)
+	}
 
 	if len(anthroResp.Content) == 0 {
 		return "", fmt.Errorf("empty response")
@@ -234,7 +260,11 @@ func (p *GeminiProvider) GenerateCommitMessage(prompt, diff string) (string, err
 		},
 	}
 
-	jsonData, _ := json.Marshal(reqBody)
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+
 	apiURL := p.cfg.APIURL
 	if apiURL == "" {
 		model := p.cfg.ModelName
@@ -245,19 +275,21 @@ func (p *GeminiProvider) GenerateCommitMessage(prompt, diff string) (string, err
 	}
 
 	fullURL := fmt.Sprintf("%s?key=%s", apiURL, p.cfg.APIKey)
-	req, _ := http.NewRequest("POST", fullURL, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", fullURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(req)
+	body, err := doRequest(req, 30*time.Second)
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
 	var geminiResp GeminiResponse
-	json.Unmarshal(body, &geminiResp)
+	if err := json.Unmarshal(body, &geminiResp); err != nil {
+		return "", fmt.Errorf("failed to unmarshal response: %w", err)
+	}
 
 	if len(geminiResp.Candidates) == 0 || len(geminiResp.Candidates[0].Content.Parts) == 0 {
 		return "", fmt.Errorf("empty response")
@@ -265,3 +297,24 @@ func (p *GeminiProvider) GenerateCommitMessage(prompt, diff string) (string, err
 
 	return geminiResp.Candidates[0].Content.Parts[0].Text, nil
 }
+
+func doRequest(req *http.Request, timeout time.Duration) ([]byte, error) {
+	client := &http.Client{Timeout: timeout}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("API error: status code %d, body: %s", resp.StatusCode, string(body))
+	}
+
+	return body, nil
+}
+
