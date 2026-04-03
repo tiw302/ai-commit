@@ -199,7 +199,7 @@ After setting this up, you should be able to use tab completion for `ai-commit` 
 - [x] **Dry Run Mode** (`--dry-run` flag)
 - [x] **Shell Autocompletion** (Bash, Zsh, Fish)
 - [x] **Enhanced TUI** (Polished UI experience using `bubbletea`)
-- [ ] **Visual Diff Preview** (Rich syntax-highlighted diffs directly in the TUI)
+- [x] **Visual Diff Preview** (Rich syntax-highlighted diffs directly in the TUI)
 - [ ] **Interactive Hunk Selection** (Pick specific code changes to commit within the tool)
 - [ ] **AI-powered Changelog Generator** (Create `CHANGELOG.md` updates from your history)
 - [ ] **Commit Analysis & Refinement** (Let the AI review and improve your manual commit messages)

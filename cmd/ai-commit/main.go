@@ -182,7 +182,7 @@ func main() {
 		}
 
 		// handle action
-		choice := tui.AskForConfirmation()
+		choice := tui.AskForConfirmation(diff)
 		switch choice {
 		case "y", "yes":
 			if *hookModeFlag != "" {

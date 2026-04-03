@@ -91,6 +91,8 @@ type confirmModel struct {
 	choices  []string
 	cursor   int
 	selected string
+	diff     string
+	showDiff bool
 }
 
 func (m confirmModel) Init() tea.Cmd { return nil }
@@ -111,10 +113,13 @@ func (m confirmModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "y", "n", "e", "r":
 			m.selected = msg.String()
 			return m, tea.Quit
+		case "d":
+			m.showDiff = !m.showDiff
 		}
 	}
 	return m, nil
 }
+
 func (m confirmModel) View() string {
 	s := titleStyle.Render("? commit message?") + "\n\n"
 	for i, choice := range m.choices {
@@ -126,14 +131,32 @@ func (m confirmModel) View() string {
 			s += itemStyle.Render(fmt.Sprintf("%s %s", cursor, choice)) + "\n"
 		}
 	}
-	s += "\n(press enter to select, or use shortcuts: y/n/e/r)\n"
+
+	if m.showDiff && m.diff != "" {
+		s += "\n" + titleStyle.Render("Staged Changes:") + "\n"
+		lines := strings.Split(m.diff, "\n")
+		for _, line := range lines {
+			if strings.HasPrefix(line, "+") && !strings.HasPrefix(line, "+++") {
+				s += lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Render(line) + "\n"
+			} else if strings.HasPrefix(line, "-") && !strings.HasPrefix(line, "---") {
+				s += lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Render(line) + "\n"
+			} else if strings.HasPrefix(line, "@@") {
+				s += lipgloss.NewStyle().Foreground(lipgloss.Color("14")).Render(line) + "\n"
+			} else {
+				s += line + "\n"
+			}
+		}
+	}
+
+	s += "\n(press enter to select, d to toggle diff, or use shortcuts: y/n/e/r)\n"
 	return s
 }
 
 // ask for confirmation with bubbletea
-func (u *UI) AskForConfirmation() string {
+func (u *UI) AskForConfirmation(diff string) string {
 	m := confirmModel{
 		choices: []string{"yes", "no", "edit", "regenerate"},
+		diff:    diff,
 	}
 	p := tea.NewProgram(m)
 	finalModel, err := p.Run()
