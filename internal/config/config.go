@@ -44,7 +44,9 @@ func LoadConfig() (*Config, error) {
 
 	// init default config if missing
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		os.MkdirAll(appDir, 0755)
+		if err := os.MkdirAll(appDir, 0755); err != nil {
+			return nil, err
+		}
 
 		defaultCfg := &Config{
 			Provider:      "openai",
@@ -69,8 +71,13 @@ func LoadConfig() (*Config, error) {
 			Language:    "en",
 		}
 
-		data, _ := json.MarshalIndent(defaultCfg, "", "  ")
-		os.WriteFile(path, data, 0644)
+		data, err := json.MarshalIndent(defaultCfg, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+		if err := os.WriteFile(path, data, 0644); err != nil {
+			return nil, err
+		}
 	}
 
 	file, err := os.ReadFile(path)
@@ -79,12 +86,16 @@ func LoadConfig() (*Config, error) {
 	}
 
 	var cfg Config
-	json.Unmarshal(file, &cfg)
+	if err := json.Unmarshal(file, &cfg); err != nil {
+		return nil, err
+	}
 
 	// merge project-specific config
 	if projectPath, err := findProjectConfig(); err == nil && projectPath != "" {
-		projectFile, _ := os.ReadFile(projectPath)
-		json.Unmarshal(projectFile, &cfg)
+		projectFile, err := os.ReadFile(projectPath)
+		if err == nil {
+			json.Unmarshal(projectFile, &cfg)
+		}
 	}
 
 	if envKey := os.Getenv("AI_COMMIT_API_KEY"); envKey != "" {
@@ -126,8 +137,13 @@ func SaveConfig(cfg *Config) error {
 	appDir := filepath.Join(configDir, "ai-commit")
 	path := filepath.Join(appDir, "config.json")
 
-	os.MkdirAll(appDir, 0755)
+	if err := os.MkdirAll(appDir, 0755); err != nil {
+		return err
+	}
 
-	data, _ := json.MarshalIndent(cfg, "", "  ")
+	data, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return err
+	}
 	return os.WriteFile(path, data, 0644)
 }
