@@ -176,13 +176,9 @@ func Commit(message string) error {
 	if !IsRepo() {
 		return fmt.Errorf("not a git repository")
 	}
-	// Using -m directly can be risky if the message contains shell metacharacters.
-	// For a robust solution, consider using git commit --message=<message> or piping to stdin.
-	// For simplicity here, we'll assume messages are reasonably safe or rely on git's handling.
-	// A more secure approach would be:
-	// cmd := exec.Command("git", "commit", "--file=-")
-	// cmd.Stdin = strings.NewReader(message)
-	cmd := exec.Command("git", "commit", "-m", message)
+	
+	cmd := exec.Command("git", "commit", "-F", "-")
+	cmd.Stdin = strings.NewReader(message)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to commit: %w", err)
 	}
