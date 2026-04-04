@@ -346,7 +346,10 @@ func generateAndCommit(tui *ui.UI, provider api.AIProvider, cfg *config.Config, 
 		switch choice {
 		case "y", "yes":
 			if hookMode != "" {
-				os.WriteFile(hookMode, []byte(commitMessage), 0644)
+				if err := os.WriteFile(hookMode, []byte(commitMessage), 0644); err != nil {
+					tui.PrintError(fmt.Sprintf("failed to write commit message: %v", err))
+					os.Exit(1)
+				}
 				return
 			}
 			if err := git.Commit(commitMessage); err != nil {
@@ -362,10 +365,16 @@ func generateAndCommit(tui *ui.UI, provider api.AIProvider, cfg *config.Config, 
 				return
 			}
 			if hookMode != "" {
-				os.WriteFile(hookMode, []byte(editedMsg), 0644)
+				if err := os.WriteFile(hookMode, []byte(editedMsg), 0644); err != nil {
+					tui.PrintError(fmt.Sprintf("failed to write commit message: %v", err))
+					os.Exit(1)
+				}
 				return
 			}
-			git.Commit(editedMsg)
+			if err := git.Commit(editedMsg); err != nil {
+				tui.PrintError(err.Error())
+				os.Exit(1)
+			}
 			tui.PrintSuccess("committed!")
 			return
 		case "r", "regenerate":
