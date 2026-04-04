@@ -7,7 +7,7 @@ import (
 )
 
 // current version
-const Version = "0.1.0"
+const Version = "0.1.1"
 
 // TUI colors
 type UIColors struct {
