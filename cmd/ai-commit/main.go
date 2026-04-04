@@ -50,88 +50,14 @@ func main() {
 	tui := ui.NewUI()
 
 	// manage hooks
-	if *installHookFlag {
-		if err := git.InstallHook(); err != nil {
-			tui.PrintError(fmt.Sprintf("hook install failed: %v", err))
-			os.Exit(1)
-		}
-		tui.PrintSuccess("git hook installed!")
-		return
-	}
-
-	if *uninstallHookFlag {
-		if err := git.UninstallHook(); err != nil {
-			tui.PrintError(fmt.Sprintf("hook uninstall failed: %v", err))
-			os.Exit(1)
-		}
-		tui.PrintSuccess("git hook removed!")
+	if *installHookFlag || *uninstallHookFlag {
+		handleHookManagement(tui, *installHookFlag)
 		return
 	}
 
 	// changelog mode
 	if *changelogFlag {
-		cfg, err := config.LoadConfig()
-		if err != nil {
-			tui.PrintError(err.Error())
-			os.Exit(1)
-		}
-
-		commits, err := git.GetRecentCommits(30)
-		if err != nil {
-			tui.PrintError(err.Error())
-			os.Exit(1)
-		}
-
-		provider, err := api.NewProvider(cfg)
-		if err != nil {
-			tui.PrintError(err.Error())
-			os.Exit(1)
-		}
-
-		prompt := "Generate a CHANGELOG.md update based on these recent git commits. Group them into relevant sections (Features, Bug Fixes, etc.). Only output the markdown content for the changelog."
-		if *langFlag != "" {
-			prompt = fmt.Sprintf("%s\n\nLanguage: %s", prompt, *langFlag)
-		}
-
-		stopChan := make(chan bool)
-		go func() {
-			spinner := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
-			i := 0
-			for {
-				select {
-				case <-stopChan:
-					fmt.Print("\r\033[K")
-					return
-				default:
-					fmt.Printf("\r\033[36m%s\033[0m generating changelog...", spinner[i])
-					i = (i + 1) % len(spinner)
-					time.Sleep(100 * time.Millisecond)
-				}
-			}
-		}()
-
-		changelog, err := provider.GenerateCommitMessage(prompt, commits)
-		stopChan <- true
-		if err != nil {
-			tui.PrintError(err.Error())
-			os.Exit(1)
-		}
-
-		fmt.Printf("\n\n%sProposed Changelog:%s\n%s\n", tui.Info, "\033[0m", changelog)
-
-		if *dryRunFlag {
-			return
-		}
-
-		choice := tui.PromptUser("save to CHANGELOG.md? [y/N]", "n")
-		if strings.ToLower(choice) == "y" {
-			err := os.WriteFile("CHANGELOG.md", []byte(changelog), 0644)
-			if err != nil {
-				tui.PrintError(err.Error())
-				os.Exit(1)
-			}
-			tui.PrintSuccess("CHANGELOG.md updated!")
-		}
+		handleChangelogGeneration(tui, *langFlag, *dryRunFlag)
 		return
 	}
 
@@ -162,28 +88,148 @@ func main() {
 
 	// initial setup
 	if cfg.APIKey == "" {
-		tui.PrintInfo("no API key found")
-		choice := tui.PromptUser("run setup wizard? [Y/n]", "Y")
-		choice = strings.ToLower(choice)
-		
-		if choice == "y" || choice == "yes" {
-			runConfigurationWizard(tui, cfg)
-			cfg, _ = config.LoadConfig()
-		} else {
-			if cfg.Provider != "ollama" {
-				tui.PrintInfo(fmt.Sprintf("no key for %s. exit.", cfg.Provider))
-				os.Exit(0)
-			}
-		}
+		ensureAPIKey(tui, cfg)
 	}
 
 	tui.ApplyConfig(cfg.UIColors)
 
 	// prompt mode
+	prompt := resolvePrompt(tui, cfg, *modeFlag, *contextFlag, *langFlag)
+
+	// interactive staging
+	if *interactiveFlag {
+		handleInteractiveStaging(tui)
+	}
+
+	// get staged diff
+	diff, err := git.GetStagedDiff(cfg)
+	if err != nil {
+		diff, err = handleNoStagedChanges(tui, cfg, *interactiveFlag)
+		if err != nil {
+			tui.PrintError(err.Error())
+			os.Exit(1)
+		}
+	}
+
+	// scope detection
+	prompt = enrichPromptWithScope(prompt)
+
+	// init AI
+	provider, err := api.NewProvider(cfg)
+	if err != nil {
+		tui.PrintError(fmt.Sprintf("provider error: %v", err))
+		os.Exit(1)
+	}
+
+	// gen loop
+	generateAndCommit(tui, provider, cfg, prompt, diff, *dryRunFlag, *hookModeFlag)
+}
+
+func handleHookManagement(tui *ui.UI, install bool) {
+	if install {
+		if err := git.InstallHook(); err != nil {
+			tui.PrintError(fmt.Sprintf("hook install failed: %v", err))
+			os.Exit(1)
+		}
+		tui.PrintSuccess("git hook installed!")
+	} else {
+		if err := git.UninstallHook(); err != nil {
+			tui.PrintError(fmt.Sprintf("hook uninstall failed: %v", err))
+			os.Exit(1)
+		}
+		tui.PrintSuccess("git hook removed!")
+	}
+}
+
+func handleChangelogGeneration(tui *ui.UI, lang string, dryRun bool) {
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		tui.PrintError(err.Error())
+		os.Exit(1)
+	}
+
+	commits, err := git.GetRecentCommits(30)
+	if err != nil {
+		tui.PrintError(err.Error())
+		os.Exit(1)
+	}
+
+	provider, err := api.NewProvider(cfg)
+	if err != nil {
+		tui.PrintError(err.Error())
+		os.Exit(1)
+	}
+
+	prompt := "Generate a CHANGELOG.md update based on these recent git commits. Group them into relevant sections (Features, Bug Fixes, etc.). Only output the markdown content for the changelog."
+	if lang != "" {
+		prompt = fmt.Sprintf("%s\n\nLanguage: %s", prompt, lang)
+	}
+
+	stopChan := make(chan bool)
+	go func() {
+		spinner := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+		i := 0
+		for {
+			select {
+			case <-stopChan:
+				fmt.Print("\r\033[K")
+				return
+			default:
+				fmt.Printf("\r\033[36m%s\033[0m generating changelog...", spinner[i])
+				i = (i + 1) % len(spinner)
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
+	}()
+
+	changelog, err := provider.GenerateCommitMessage(prompt, commits)
+	stopChan <- true
+	if err != nil {
+		tui.PrintError(err.Error())
+		os.Exit(1)
+	}
+
+	fmt.Printf("\n\n%sProposed Changelog:%s\n%s\n", tui.Info, "\033[0m", changelog)
+
+	if dryRun {
+		return
+	}
+
+	choice := tui.PromptUser("save to CHANGELOG.md? [y/N]", "n")
+	if strings.ToLower(choice) == "y" {
+		err := os.WriteFile("CHANGELOG.md", []byte(changelog), 0644)
+		if err != nil {
+			tui.PrintError(err.Error())
+			os.Exit(1)
+		}
+		tui.PrintSuccess("CHANGELOG.md updated!")
+	}
+}
+
+func ensureAPIKey(tui *ui.UI, cfg *config.Config) {
+	tui.PrintInfo("no API key found")
+	choice := tui.PromptUser("run setup wizard? [Y/n]", "Y")
+	choice = strings.ToLower(choice)
+	
+	if choice == "y" || choice == "yes" {
+		runConfigurationWizard(tui, cfg)
+		// reload config after wizard
+		if newCfg, err := config.LoadConfig(); err == nil {
+			*cfg = *newCfg
+		}
+	} else {
+		if cfg.Provider != "ollama" {
+			tui.PrintInfo(fmt.Sprintf("no key for %s. exit.", cfg.Provider))
+			os.Exit(0)
+		}
+	}
+}
+
+func resolvePrompt(tui *ui.UI, cfg *config.Config, mode, context, lang string) string {
 	var prompt string
-	if *modeFlag != "" {
+	if mode != "" {
 		var ok bool
-		prompt, ok = cfg.Modes[*modeFlag]
+		prompt, ok = cfg.Modes[mode]
 		if !ok {
 			tui.PrintError("unknown mode")
 			os.Exit(1)
@@ -194,67 +240,61 @@ func main() {
 		prompt = cfg.Modes[cfg.DefaultMode]
 	}
 
-	if *contextFlag != "" {
-		prompt = fmt.Sprintf("%s\n\nUser Context: %s", prompt, *contextFlag)
+	if context != "" {
+		prompt = fmt.Sprintf("%s\n\nUser Context: %s", prompt, context)
 	}
 
 	// set language
 	language := cfg.Language
-	if *langFlag != "" {
-		language = *langFlag
+	if lang != "" {
+		language = lang
 	}
 	if language != "" && language != "en" {
 		prompt = fmt.Sprintf("%s\n\nLanguage: %s", prompt, language)
 	}
+	return prompt
+}
 
-	// interactive staging
-	if *interactiveFlag {
+func handleInteractiveStaging(tui *ui.UI) {
+	staged, _ := git.GetStagedFiles()
+	unstaged, _ := git.GetUnstagedFiles()
+	
+	items := tui.ShowStagingUI(staged, unstaged)
+	if items != nil {
+		for _, item := range items {
+			if item.Selected && !item.IsStaged {
+				git.StageFile(item.Name)
+			} else if !item.Selected && item.IsStaged {
+				git.UnstageFile(item.Name)
+			}
+		}
+	}
+}
+
+func handleNoStagedChanges(tui *ui.UI, cfg *config.Config, alreadyInteractive bool) (string, error) {
+	if !alreadyInteractive {
 		staged, _ := git.GetStagedFiles()
 		unstaged, _ := git.GetUnstagedFiles()
-		
-		items := tui.ShowStagingUI(staged, unstaged)
-		if items != nil {
-			for _, item := range items {
-				if item.Selected && !item.IsStaged {
-					git.StageFile(item.Name)
-				} else if !item.Selected && item.IsStaged {
-					git.UnstageFile(item.Name)
-				}
-			}
-		}
-	}
-
-	// get staged diff
-	diff, err := git.GetStagedDiff(cfg)
-	if err != nil {
-		// if nothing staged and not in interactive mode, try to show interactive
-		if !*interactiveFlag {
-			staged, _ := git.GetStagedFiles()
-			unstaged, _ := git.GetUnstagedFiles()
-			if len(unstaged) > 0 {
-				tui.PrintInfo("no staged changes. opening interactive selector...")
-				items := tui.ShowStagingUI(staged, unstaged)
-				if items != nil {
-					for _, item := range items {
-						if item.Selected && !item.IsStaged {
-							git.StageFile(item.Name)
-						} else if !item.Selected && item.IsStaged {
-							git.UnstageFile(item.Name)
-						}
+		if len(unstaged) > 0 {
+			tui.PrintInfo("no staged changes. opening interactive selector...")
+			items := tui.ShowStagingUI(staged, unstaged)
+			if items != nil {
+				for _, item := range items {
+					if item.Selected && !item.IsStaged {
+						git.StageFile(item.Name)
+					} else if !item.Selected && item.IsStaged {
+						git.UnstageFile(item.Name)
 					}
-					// retry getting diff
-					diff, err = git.GetStagedDiff(cfg)
 				}
+				// retry getting diff
+				return git.GetStagedDiff(cfg)
 			}
 		}
-		
-		if err != nil {
-			tui.PrintError(err.Error())
-			os.Exit(1)
-		}
 	}
+	return "", fmt.Errorf("no staged changes")
+}
 
-	// scope detection
+func enrichPromptWithScope(prompt string) string {
 	files, err := git.GetStagedFiles()
 	if err == nil && len(files) > 0 {
 		if scope := git.DetectScope(files); scope != "" {
@@ -262,16 +302,10 @@ func main() {
 		}
 		prompt = fmt.Sprintf("%s\n\nFiles Modified:\n%s", prompt, strings.Join(files, "\n"))
 	}
+	return prompt
+}
 
-	// init AI
-	provider, err := api.NewProvider(cfg)
-	if err != nil {
-		tui.PrintError(fmt.Sprintf("provider error: %v", err))
-		os.Exit(1)
-	}
-
-	// gen loop
-	var commitMessage string
+func generateAndCommit(tui *ui.UI, provider api.AIProvider, cfg *config.Config, prompt, diff string, dryRun bool, hookMode string) {
 	for {
 		stopChan := make(chan bool)
 		go ui.LoadingSpinner(stopChan)
@@ -283,10 +317,10 @@ func main() {
 			os.Exit(1)
 		}
 
-		commitMessage = strings.TrimSpace(msg)
+		commitMessage := strings.TrimSpace(msg)
 		fmt.Printf("\n\n%sProposed Commit Message:%s\n%s\n", tui.Info, "\033[0m", commitMessage)
 
-		if *dryRunFlag {
+		if dryRun {
 			tui.PrintInfo("dry run. skip commit.")
 			return
 		}
@@ -295,8 +329,8 @@ func main() {
 		choice := tui.AskForConfirmation(diff)
 		switch choice {
 		case "y", "yes":
-			if *hookModeFlag != "" {
-				os.WriteFile(*hookModeFlag, []byte(commitMessage), 0644)
+			if hookMode != "" {
+				os.WriteFile(hookMode, []byte(commitMessage), 0644)
 				return
 			}
 			if err := git.Commit(commitMessage); err != nil {
@@ -311,8 +345,8 @@ func main() {
 				tui.PrintInfo("empty message. cancel.")
 				return
 			}
-			if *hookModeFlag != "" {
-				os.WriteFile(*hookModeFlag, []byte(editedMsg), 0644)
+			if hookMode != "" {
+				os.WriteFile(hookMode, []byte(editedMsg), 0644)
 				return
 			}
 			git.Commit(editedMsg)
@@ -326,6 +360,7 @@ func main() {
 		}
 	}
 }
+
 
 func runConfigurationWizard(tui *ui.UI, cfg *config.Config) {
 	fmt.Println()
