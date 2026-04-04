@@ -17,8 +17,24 @@ func main() {
 	// CLI flags
 	flag.Usage = func() {
 		fmt.Printf("ai-commit - A humble AI-powered git commit generator\n\n")
-		fmt.Printf("Usage:\n")
-		flag.PrintDefaults()
+		fmt.Printf("Usage: ai-commit [flags]\n\n")
+		fmt.Printf("Commands:\n")
+		fmt.Printf("  --configure          Run the interactive configuration wizard\n")
+		fmt.Printf("  --install-hook       Set up git hook to run ai-commit on git commit\n")
+		fmt.Printf("  --uninstall-hook     Remove the git hook\n")
+		fmt.Printf("  --changelog          Generate CHANGELOG.md from recent history\n")
+		fmt.Printf("  --completion <shell> Generate shell completion script (bash, zsh, fish)\n\n")
+		fmt.Printf("Options:\n")
+		fmt.Printf("  -m <context>         Provide extra context for the AI\n")
+		fmt.Printf("  --mode <mode>        Use a specific prompt mode (e.g., pro, troll)\n")
+		fmt.Printf("  --lang <lang>        Specify output language (e.g., en, th, jp)\n")
+		fmt.Printf("  -i                   Interactive mode to stage/unstage files\n")
+		fmt.Printf("  --dry-run            Show proposed message without committing\n")
+		fmt.Printf("  -v, --version        Show version information\n")
+		fmt.Printf("\nExamples:\n")
+		fmt.Printf("  $ git add . && ai-commit\n")
+		fmt.Printf("  $ ai-commit -m \"fix login bug\"\n")
+		fmt.Printf("  $ ai-commit --mode troll\n")
 	}
 
 	versionFlag := flag.Bool("v", false, "version info")
